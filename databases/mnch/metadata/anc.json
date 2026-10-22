@@ -29405,17 +29405,6 @@
   ],
   "organisationUnitGroupSets": [],
   "organisationUnitGroups": [],
-  "package": {
-    "DHIS2Build": "c829b69",
-    "DHIS2Version": "2.37.9",
-    "code": "RMNCAH_ANC",
-    "description": "",
-    "lastUpdated": "20230320T101225",
-    "locale": "en",
-    "name": "RMNCAH_ANC_TRK_DHIS2.37.9-en",
-    "type": "TRK",
-    "version": "1.0.0"
-  },
   "predictorGroups": [],
   "predictors": [],
   "programIndicatorGroups": [],
@@ -64317,7 +64306,8 @@
       },
       "translations": [],
       "useFirstStageDuringRegistration": false,
-      "version": 53
+      "version": 53,
+      "organisationUnits": []
     }
   ],
   "reports": [],
@@ -65663,8 +65653,6 @@
       "users": []
     }
   ],
-  "userRoles": [],
-  "users": [],
   "validationNotificationTemplates": [],
   "validationRuleGroups": [],
   "validationRules": [],

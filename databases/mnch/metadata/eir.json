@@ -37062,19 +37062,6 @@
   ],
   "organisationUnitGroupSets": [],
   "organisationUnitGroups": [],
-  "package": {
-    "DHIS2Build": "dfd7f48",
-    "DHIS2Version": "2.40.5",
-    "code": "IMM_EIR",
-    "description": "Electronic Immunization Registry (routine)",
-    "healthAreaCode": "IMM",
-    "healthAreaName": "Immunization",
-    "lastUpdated": "20250124T151254",
-    "locale": "en",
-    "name": "IMM_EIR_TRK_DHIS2.40.5-en",
-    "type": "TRK",
-    "version": "1.1.1"
-  },
   "predictorGroups": [],
   "predictors": [],
   "programIndicatorGroups": [],
@@ -72339,7 +72326,8 @@
         }
       ],
       "useFirstStageDuringRegistration": false,
-      "version": 131
+      "version": 131,
+      "organisationUnits": []
     }
   ],
   "reports": [],
@@ -76124,109 +76112,8 @@
           "property": "NAME",
           "value": "مدير إشعار الولادة"
         }
-      ]
-    }
-  ],
-  "userRoles": [
-    {
-      "authorities": [
-        "F_TRACKED_ENTITY_INSTANCE_SEARCH_IN_ALL_ORGUNITS",
-        "M_dhis-web-interpretation",
-        "F_IGNORE_TRACKER_REQUIRED_VALUE_VALIDATION",
-        "M_dhis-web-user",
-        "M_dhis-web-translations",
-        "F_ENROLLMENT_CASCADE_DELETE",
-        "M_dhis-web-aggregate-data-entry",
-        "M_dhis-web-event-reports",
-        "F_VIEW_EVENT_ANALYTICS",
-        "M_dhis-web-approval",
-        "M_dhis-web-maintenance",
-        "F_PROGRAM_RULE_MANAGEMENT",
-        "F_TEI_CASCADE_DELETE",
-        "M_dhis-web-cache-cleaner",
-        "M_dhis-web-event-visualizer",
-        "F_PROGRAM_DASHBOARD_CONFIG_ADMIN",
-        "M_dhis-web-datastore",
-        "M_dhis-web-reports",
-        "F_TRACKER_IMPORTER_EXPERIMENTAL",
-        "M_dhis-web-data-quality",
-        "M_dhis-web-menu-management",
-        "M_dhis-web-dataentry",
-        "M_dhis-web-usage-analytics",
-        "M_dhis-web-import-export",
-        "M_dataexchange",
-        "M_dhis-web-settings",
-        "F_TRACKED_ENTITY_MERGE",
-        "M_dhis-web-tracker-capture",
-        "M_dhis-web-maps",
-        "M_dhis-web-data-visualizer",
-        "M_dhis-web-dashboard",
-        "M_androidsettingsapp",
-        "M_dhis-web-data-administration",
-        "F_CAPTURE_DATASTORE_UPDATE",
-        "M_dhis-web-scheduler",
-        "M_dhis-web-capture",
-        "F_TRACKED_ENTITY_UPDATE",
-        "M_dhis-web-app-management",
-        "M_dhis-web-messaging",
-        "M_dhis-web-sms-configuration",
-        "F_UNCOMPLETE_EVENT"
       ],
-      "id": "nCNR71ZbTHK",
-      "name": "Package User Role",
-      "restrictions": [],
-      "sharing": {
-        "external": false,
-        "owner": "vUeLeQMSwhN",
-        "public": "r-------",
-        "userGroups": {
-          "JVenB84tY1X": {
-            "access": "r-------",
-            "id": "JVenB84tY1X"
-          },
-          "T6DZORCrELb": {
-            "access": "rw------",
-            "id": "T6DZORCrELb"
-          },
-          "gum1e8w6CmI": {
-            "access": "r-------",
-            "id": "gum1e8w6CmI"
-          }
-        },
-        "users": {}
-      },
-      "translations": [
-        {
-          "locale": "fr",
-          "property": "NAME",
-          "value": "Rôle d'utilisateur du package"
-        }
-      ]
-    }
-  ],
-  "users": [
-    {
-      "attributeValues": [],
-      "catDimensionConstraints": [],
-      "cogsDimensionConstraints": [],
-      "dataViewOrganisationUnits": [],
-      "disabled": false,
-      "externalAuth": false,
-      "firstName": "package",
-      "id": "vUeLeQMSwhN",
-      "invitation": false,
-      "lastLogin": "2020-04-23T09:17:46.912",
-      "organisationUnits": [],
-      "passwordLastUpdated": "2022-08-17T12:56:38.395",
-      "selfRegistered": false,
-      "surname": "admin",
-      "teiSearchOrganisationUnits": [],
-      "userRoles": [
-        {
-          "id": "nCNR71ZbTHK"
-        }
-      ],
-      "username": "package_admin"
+      "users": []
     }
   ],
   "validationNotificationTemplates": [],

@@ -30499,9 +30499,6 @@
       "translations": []
     },
     {
-      "dataElement": {
-        "id": "f3h8nokUpb1"
-      },
       "evaluationEnvironments": [
         "WEB",
         "ANDROID"
@@ -33815,9 +33812,6 @@
       "translations": []
     },
     {
-      "dataElement": {
-        "id": "f3h8nokUpb1"
-      },
       "evaluationEnvironments": [
         "WEB",
         "ANDROID"
@@ -35707,10 +35701,6 @@
       "translations": []
     },
     {
-      "data": "V{current_date}",
-      "dataElement": {
-        "id": "d4mOfPlHrEP"
-      },
       "evaluationEnvironments": [
         "WEB",
         "ANDROID"
@@ -36146,9 +36136,6 @@
       "translations": []
     },
     {
-      "dataElement": {
-        "id": "f3h8nokUpb1"
-      },
       "evaluationEnvironments": [
         "WEB",
         "ANDROID"

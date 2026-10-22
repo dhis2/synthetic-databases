@@ -38719,19 +38719,6 @@
       "useCodeForOptionSet": false
     },
     {
-      "id": "R8XvV0XbDHq",
-      "name": "ANC.DT.08 Danger signs visual disturbance",
-      "program": {
-        "id": "WSGAb5XwJ3Y"
-      },
-      "programRuleVariableSourceType": "DATAELEMENT_NEWEST_EVENT_PROGRAM_STAGE",
-      "programStage": {
-        "id": "XznDErihed9"
-      },
-      "translations": [],
-      "useCodeForOptionSet": false
-    },
-    {
       "dataElement": {
         "id": "Gt7q6zvJ7Vj"
       },

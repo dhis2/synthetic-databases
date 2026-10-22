@@ -35505,7 +35505,7 @@
       "translations": []
     },
     {
-      "data": "Overweight",
+      "data": "'OVERWEIGHT'",
       "dataElement": {
         "id": "UsYtsHtuvwQ"
       },
@@ -35804,7 +35804,7 @@
       "translations": []
     },
     {
-      "data": "Underweight ",
+      "data": "'UNDERWEIGHT'",
       "dataElement": {
         "id": "UsYtsHtuvwQ"
       },
@@ -35837,7 +35837,7 @@
       "translations": []
     },
     {
-      "data": "Normal weight",
+      "data": "'NORMAL_WEIGHT'",
       "dataElement": {
         "id": "UsYtsHtuvwQ"
       },
@@ -35988,7 +35988,7 @@
       "translations": []
     },
     {
-      "data": "Obese",
+      "data": "'OBESE'",
       "dataElement": {
         "id": "UsYtsHtuvwQ"
       },

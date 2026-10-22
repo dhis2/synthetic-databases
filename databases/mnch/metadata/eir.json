@@ -877,7 +877,8 @@
         "users": {}
       },
       "shortName": "Category Options",
-      "translations": []
+      "translations": [],
+      "dataDimensionType": "DISAGGREGATION"
     }
   ],
   "categoryOptions": [

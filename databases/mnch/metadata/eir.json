@@ -67476,9 +67476,9 @@
       ]
     },
     {
-      "condition": "#{birth_weight} < 2500 && d2:hasValue('birth_weight')",
+      "condition": "#{birth_weight} < 500 && d2:hasValue('birth_weight')",
       "id": "MRn6asFPQlJ",
-      "name": "Val: Low birth weight < 2500g",
+      "name": "Val: Low birth weight < 500g",
       "program": {
         "id": "SSLpOM0r1U7"
       },

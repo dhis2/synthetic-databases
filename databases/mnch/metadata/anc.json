@@ -65105,7 +65105,9 @@
         }
       ],
       "unique": false,
-      "valueType": "TEXT"
+      "valueType": "TEXT",
+      "trigramIndexable": true,
+      "minCharactersToSearch": 3
     },
     {
       "aggregationType": "COUNT",
@@ -65341,7 +65343,9 @@
         }
       ],
       "unique": false,
-      "valueType": "TEXT"
+      "valueType": "TEXT",
+      "trigramIndexable": true,
+      "minCharactersToSearch": 3
     },
     {
       "aggregationType": "COUNT",
@@ -65442,7 +65446,9 @@
         }
       ],
       "unique": false,
-      "valueType": "PHONE_NUMBER"
+      "valueType": "PHONE_NUMBER",
+      "trigramIndexable": true,
+      "minCharactersToSearch": 3
     }
   ],
   "trackedEntityInstanceFilters": [],

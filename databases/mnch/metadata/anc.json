@@ -24712,9 +24712,6 @@
           "id": "vXsBVntUONd"
         },
         {
-          "id": "Lps9JUSPNXn"
-        },
-        {
           "id": "klRzjFkyAFe"
         },
         {
@@ -29045,17 +29042,6 @@
       "name": "Stillbirth",
       "optionSet": {
         "id": "nNpXLKQ00ch"
-      },
-      "sortOrder": 2,
-      "translations": []
-    },
-    {
-      "attributeValues": [],
-      "code": "STOCK-OUT",
-      "id": "Lps9JUSPNXn",
-      "name": "Stock-out",
-      "optionSet": {
-        "id": "x3cLV1OZfSF"
       },
       "sortOrder": 2,
       "translations": []

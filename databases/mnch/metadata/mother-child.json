@@ -1,0 +1,73 @@
+{
+  "relationshipTypes": [
+    {
+      "id": "hXPXeTGy6cS",
+      "code": "MOTHER_CHILD",
+      "name": "Mother and child",
+      "fromToName": "Mother of",
+      "toFromName": "Mother",
+      "bidirectional": true,
+      "fromConstraint": {
+        "relationshipEntity": "TRACKED_ENTITY_INSTANCE",
+        "trackedEntityType": {
+          "id": "MCPQUTHX1Ze"
+        },
+        "program": {
+          "id": "WSGAb5XwJ3Y"
+        },
+        "trackerDataView": {
+          "attributes": [
+            "sB1IHYu2xQT",
+            "ENRjVGxVL6l"
+          ],
+          "dataElements": []
+        }
+      },
+      "toConstraint": {
+        "relationshipEntity": "TRACKED_ENTITY_INSTANCE",
+        "trackedEntityType": {
+          "id": "MCPQUTHX1Ze"
+        },
+        "program": {
+          "id": "SSLpOM0r1U7"
+        },
+        "trackerDataView": {
+          "attributes": [
+            "sB1IHYu2xQT",
+            "ENRjVGxVL6l"
+          ],
+          "dataElements": []
+        }
+      },
+      "sharing": {
+        "public": "r-------",
+        "userGroups": {
+          "DC8ihDTepVJ": {
+            "access": "r-rw----",
+            "id": "DC8ihDTepVJ"
+          },
+          "JP6z7uZxqkI": {
+            "access": "r-r-----",
+            "id": "JP6z7uZxqkI"
+          },
+          "ezPFanLzMYA": {
+            "access": "rw------",
+            "id": "ezPFanLzMYA"
+          },
+          "JVenB84tY1X": {
+            "access": "r-r-----",
+            "id": "JVenB84tY1X"
+          },
+          "T6DZORCrELb": {
+            "access": "rw------",
+            "id": "T6DZORCrELb"
+          },
+          "gum1e8w6CmI": {
+            "access": "r-rw----",
+            "id": "gum1e8w6CmI"
+          }
+        }
+      }
+    }
+  ]
+}

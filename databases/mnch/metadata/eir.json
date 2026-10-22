@@ -2903,35 +2903,6 @@
           "width": 10,
           "x": 11,
           "y": 13
-        },
-        {
-          "attributeValues": [],
-          "contentCount": 1,
-          "eventChart": {
-            "id": "qfbqPmkI3h9"
-          },
-          "externalAccess": false,
-          "favorite": false,
-          "favorites": [],
-          "height": 21,
-          "id": "yK6V7WcVOSQ",
-          "interpretationCount": 0,
-          "interpretationLikeCount": 0,
-          "reports": [],
-          "resources": [],
-          "sharing": {
-            "external": false,
-            "userGroups": {},
-            "users": {}
-          },
-          "translations": [],
-          "type": "EVENT_CHART",
-          "userAccesses": [],
-          "userGroupAccesses": [],
-          "users": [],
-          "width": 24,
-          "x": 34,
-          "y": 60
         }
       ],
       "id": "f60cnnoj7JL",

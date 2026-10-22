@@ -9772,7 +9772,7 @@
         "id": "bjDvmb4bfuf"
       },
       "code": "ANC.B8.DE131",
-      "description": "Sexual violence (e.g forced sexual intercourse, harming a person during sex. It includes rape, and attempted rape, which involves use of physical force, intimidation, coercion or drugs/alcohol to obtain penetration of the vulva/vagina, anus or mouth by one or multiple perpetrators including by an intimate partner.",
+      "description": "Sexual violence (e.g forced sexual intercourse, harming a person during sex. It includes rape, and attempted rape, which involves use of physical force, intimidation, coercion or drugs/alcohol to obtain penetration of the vulva/vagina, anus or mouth by...",
       "domainType": "TRACKER",
       "formName": "Sexual violence",
       "id": "XEpZHH2gkDA",
@@ -22887,7 +22887,7 @@
         "id": "bjDvmb4bfuf"
       },
       "code": "ANC.B9.DE35",
-      "description": "An HIV test is required for all pregnant women at the first contact in pregnancy and again at the first contact of the 3rd trimester if the HIV prevalence in the pregnant woman population is ? 5%. A test is not required if the woman is already confirmed HIV+.",
+      "description": "An HIV test is required for all pregnant women at the first contact in pregnancy and again at the first contact of the 3rd trimester if the HIV prevalence in the pregnant woman population is ? 5%. A test is not required if the woman is already confirme...",
       "domainType": "TRACKER",
       "formName": "HIV test conducted",
       "id": "MnO12leHYlN",
@@ -23595,7 +23595,7 @@
         "id": "bjDvmb4bfuf"
       },
       "code": "ANC.B6.DE37",
-      "description": "A condition specific to pregnancy, arising after the 20th week of gestation, characterized by hypertension and proteinuria. Oedema may also be present, but is no longer considered a cardinal sign because it is present to some extent in most pregnancies. If not controlled, pre-eclampsia will lead to eclampsia which is characterized by fits, followed by coma, and has a high mortality rate.",
+      "description": "A condition specific to pregnancy, arising after the 20th week of gestation, characterized by hypertension and proteinuria. Oedema may also be present, but is no longer considered a cardinal sign because it is present to some extent in most pregnancies...",
       "domainType": "TRACKER",
       "formName": "Pre-eclampsia",
       "id": "TGcfgzv8mQA",
@@ -23824,7 +23824,7 @@
         "id": "bjDvmb4bfuf"
       },
       "code": "ANC.B9.DE114",
-      "description": "A urine test is required at the first contact, last contact in 2nd trimester, and 2nd contact in 3rd trimester OR anytime the woman reports pain during urination (dysuria). A dipstick test is required if the woman has a repeat high BP reading (140/90 or higher). Otherwise, a urine test is optional. The urine test checks for bacterial or other infections that can lead to adverse outcomes for the neonate. The urine dipstick test can check for proteins in the urine, which can be a sign of pre-eclampsia.",
+      "description": "A urine test is required at the first contact, last contact in 2nd trimester, and 2nd contact in 3rd trimester OR anytime the woman reports pain during urination (dysuria). A dipstick test is required if the woman has a repeat high BP reading (140/90 o...",
       "domainType": "TRACKER",
       "formName": "Urine test conducted",
       "id": "sSs88SkrDSG",
@@ -46049,7 +46049,7 @@
           "id": "usQegZ35NAR"
         }
       ],
-      "description": "Select the type of urine test that was done. Of the three types of tests, the midstream urine culture is the preferred method. If culture is not available, then midstream Gram-staining test is preferred over dipstick. Urine dipstick test is required if need to check urine for protein.",
+      "description": "Select the type of urine test that was done. Of the three types of tests, the midstream urine culture is the preferred method. If culture is not available, then midstream Gram-staining test is preferred over dipstick. Urine dipstick test is required if...",
       "id": "X7Sgxf56paR",
       "name": "Urine test type",
       "programIndicators": [],

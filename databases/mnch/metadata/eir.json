@@ -75870,7 +75870,8 @@
           "property": "NAME",
           "value": "شخص"
         }
-      ]
+      ],
+      "shortName": "Person"
     }
   ],
   "userGroups": [

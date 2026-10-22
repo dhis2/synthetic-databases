@@ -2629,7 +2629,8 @@
         "public": "rw------",
         "users": {}
       },
-      "translations": []
+      "translations": [],
+      "shortName": "RMNCAH_ANC Tracker"
     }
   ],
   "dataElements": [
@@ -65645,7 +65646,8 @@
           "property": "NAME",
           "value": "شخص"
         }
-      ]
+      ],
+      "shortName": "Person"
     }
   ],
   "userGroups": [

@@ -65457,7 +65457,21 @@
         "external": false,
         "owner": "M5zQapPyTZI",
         "public": "rw------",
-        "users": {}
+        "users": {},
+        "userGroups": {
+          "DC8ihDTepVJ": {
+            "access": "r-rw----",
+            "id": "DC8ihDTepVJ"
+          },
+          "JP6z7uZxqkI": {
+            "access": "r-r-----",
+            "id": "JP6z7uZxqkI"
+          },
+          "ezPFanLzMYA": {
+            "access": "rw------",
+            "id": "ezPFanLzMYA"
+          }
+        }
       },
       "style": {},
       "trackedEntityTypeAttributes": [],

@@ -1,0 +1,350 @@
+# An example database: maternal, newborn and child health (MNCH) data of ANC and EIR, from the
+# corrected metadata in metadata/.
+#
+# The program rules are the spec's to satisfy (dbgen validate). A field a rule assigns from today's
+# date, such as ANC's Age and visit date, holds what a live instance holds, the value of the day the
+# record was entered, and is unvalidated: validate and verify leave it out of what they submit, as
+# no record of the past can match today's.
+#
+# In expressions, dates are days since 1970-01-01: the gestational age of an event, in weeks, is
+# enrollment.ga_first + (event.date - enrollment.date) / 7, the first contact being the
+# enrollment's date.
+
+[build]
+metadata = ["metadata/anc.json", "metadata/eir.json", "metadata/mother-child.json"]
+seed = 42
+start = 2020-01-01
+end = 2025-01-01
+now = 2025-03-01 # "today" for scheduled and overdue events
+
+# Perf Land, a made-up country. A build covers districts, the populations district health offices
+# serve, and its records scale with their people; regions only group them.
+[orgunits]
+root = { name = "Perf Land", code = "QP" }
+
+[[orgunits.level]]
+name = "Region"
+count = 20
+
+[[orgunits.level]]
+name = "District"
+# Regions differ in their number of districts, and so in their people.
+per_parent = { lognormal = { mean = 25, sigma = 0.64 }, min = 1, round = 0 }
+
+[[orgunits.level]]
+name = "Ward"
+# A ward is a primary health care catchment.
+per_parent = { poisson = "district.people / 20_000", min = 1 }
+
+[[orgunits.level]]
+name = "Facility"
+# Many health posts and centres, few hospitals, more of them in cities. per_100k and urban_factor
+# read the District traits people and urban. weight is a type's share of the registrations, so a
+# district has a few busy facilities and many quiet ones.
+per = "District"
+types = [
+  { name = "Health Post", per_100k = 15, urban_factor = 0.5, weight = 1, clerks = 1 },
+  { name = "Health Center", per_100k = 8, urban_factor = 1, weight = 3, clerks = 2 },
+  { name = "District Hospital", per_100k = 0.5, urban_factor = 2, weight = 10, clerks = 3 },
+  { name = "Regional Hospital", per_100k = 0.05, urban_factor = 4, weight = 6, clerks = 4 },
+  { name = "National Hospital", per_100k = 0.01, urban_factor = 8, weight = 6, clerks = 4 },
+]
+
+[trait.district]
+# Most districts are mid-sized, a few are large cities.
+people = { lognormal = { mean = 300_000, sigma = 0.7 }, max = 1_500_000, round = 0 }
+# The most populous districts are the cities.
+urban = { largest = "people", until_share = 0.45 }
+
+[trait.facility]
+# Facilities of one type differ in how many people they serve.
+size = { lognormal = { median = 1, sigma = 0.6 } }
+
+[users]
+officers = ["District", "Region"]
+search_level = "District"
+
+# ANC: a tracked entity is a woman with a contact in the window, an enrollment a pregnancy.
+[program.RMNCAH_ANC]
+tracked_entities = { total = "district.people * 0.125", among = "District", by = "facility.size * facility.weight" }
+# Rules assign these from today's date: Age (years) from the date of birth, the Quick Check's
+# ANC_VISIT_LATEST_DATE the day itself.
+unvalidated = ["B6TnnFMgmCk", "d4mOfPlHrEP"]
+
+[program.RMNCAH_ANC.enrollments]
+count = { poisson = 0.26, plus = 1 } # one pregnancy, and maybe more, one after another
+gap = { uniform = [182, 546] } # from the last event to the next first contact
+status = { COMPLETED = 0.6, ACTIVE = 0.4 } # of a woman's last pregnancy that ended
+
+[program.RMNCAH_ANC.trait.tracked_entity]
+age = { uniform = [15, 45] } # at her first booking, in years
+height = { normal = { mean = 158, sd = 6 }, min = 140, max = 190 } # cm
+# Her BMI before pregnancy: most of normal weight, a long tail of the obese.
+bmi = { lognormal = { median = 7.39, sigma = 0.6 }, plus = 14 }
+# Her weight before pregnancy, from her BMI, within the rule's bounds with room for the gain.
+weight = { sql = "tracked_entity.bmi * pow(tracked_entity.height / 100, 2)", min = 35, max = 170 }
+# Her pregnancies before the window: live births by her age, few stillbirths and losses.
+prior_live = { poisson = "greatest(tracked_entity.age - 17, 0) * 0.2", max = 8 }
+prior_still = { bernoulli = 0.04 } # rare, so alike at every age, unlike her live births
+prior_loss = { poisson = 0.2, max = 3 }
+prior_caesareans = { bernoulli = "least(tracked_entity.prior_live, 1) * 0.05" }
+# Her births and pregnancies before the window, which the history's counts add up.
+prior_births = { sql = "tracked_entity.prior_live + tracked_entity.prior_still" }
+prior_pregnancies = { sql = "tracked_entity.prior_births + tracked_entity.prior_loss" }
+
+[program.RMNCAH_ANC.trait.enrollment]
+# Gestational age at the first contact, weeks: by the month of the first contact.
+ga_first = { sql = """case when u('m') < 0.35 then 6 + 7 * u('w') when u('m') < 0.75 then 13 + 9 * u('w')
+                           when u('m') < 0.95 then 22 + 9 * u('w') else 31 + 5 * u('w') end""" }
+# The outcome: 1 a live birth, 2 a miscarriage, 3 a stillbirth. A miscarriage ends a pregnancy
+# before the weeks of a stillbirth, so only a woman whose first contact is early is seen to have one.
+outcome = { sql = "case when enrollment.ga_first < 20 and u('m') < 0.038 then 2 when u('s') < 0.02 then 3 else 1 end" }
+# Gestational age at the outcome, weeks: the lengths of pregnancies for a birth, a few weeks after
+# the first contact for a miscarriage.
+ga_outcome = { sql = """case when enrollment.outcome = 2 then enrollment.ga_first + 2 + 6 * u('l')
+    else greatest(enrollment.ga_first + 2,
+         case when u('w') < 0.02 then 28 + 4 * u('d') when u('w') < 0.1 then 32 + 5 * u('d')
+              when u('w') < 0.29 then 37 + u('d') when u('w') < 0.81 then 38 + 2 * u('d')
+              when u('w') < 0.94 then 40 + 2 * u('d') else 42 + u('d') end) end""" }
+# Days from the first contact to the outcome.
+days_to_outcome = { sql = "7 * (enrollment.ga_outcome - enrollment.ga_first)" }
+# A scan is due before the 24th week, so a woman who comes early is likelier to have one.
+ultrasound = { bernoulli = "case when enrollment.ga_first < 24 then 0.35 else 0.1 end" }
+hb = { normal = { mean = 11.2, sd = 1.5 }, min = 6, max = 16 } # g/dL
+hiv = { bernoulli = 0.02 }
+syphilis = { bernoulli = 0.005 }
+# Cities have more facilities, closer, so more of their births are in one.
+facility_delivery = { bernoulli = "0.45 + 0.35 * district.urban" }
+caesarean = { bernoulli = "0.08 * enrollment.facility_delivery" }
+birth_weight = { normal = { mean = 3100, sd = 450 }, min = 500, max = 5000 }
+
+# A contact fills five stages on one day, at least four weeks after the one before. The count caps
+# at the contacts that fit at the longest spacing, so every contact is before the outcome.
+[program.RMNCAH_ANC.visits]
+stages = ["Quick Check", "Physical Examinations", "Laboratory Tests and Imaging",
+          "Symptoms and Follow-up", "Counselling and Treatment"]
+count = { poisson = 4.0, plus = 1, max = "1 + floor(enrollment.days_to_outcome / 35)" }
+spacing = { uniform = [28, 35] }
+status = { COMPLETED = 0.97, SCHEDULE = 0.02, SKIPPED = 0.01 }
+
+[program.RMNCAH_ANC.stage."Close ANC Record"]
+share = 0.56
+# Up to two weeks after the outcome.
+offset = { sql = "enrollment.days_to_outcome + 1 + 14 * u('delay')" }
+
+[program.RMNCAH_ANC.values]
+# Woman's Profile and History, at the first contact. Gestational age by ultrasound or palpation,
+# not LMP: a rule assigns the age from LMP to today's date, which no record of the past matches.
+w4ky6EkVahL = { sql = "enrollment.date - 7 * enrollment.ga_first" } # LMP date
+RPSgZF1i0hk = { sql = "case when enrollment.ultrasound = 1 then 'ULTRASOUND' else 'SFH_OR_ABDOMINAL_PALPATION' end" } # source of gestational age
+AgT7x2hKIKk = { sql = "enrollment.ultrasound" } # ultrasound done
+aDupNZicnxt = { sql = "value.Ru01omP2WCQ", if = "enrollment.ultrasound = 1" } # ultrasound EDD
+Ru01omP2WCQ = { sql = "value.w4ky6EkVahL::date + 280" } # EDD
+w9p8MQDRyMr = { sql = "floor(enrollment.ga_first)" } # gestational age
+PuiTfPfSf86 = { sql = "tracked_entity.prior_pregnancies + enrollment.number + 1" } # gravida
+EOsYEGE7ENx = { sql = "tracked_entity.prior_pregnancies + enrollment.number" } # previous pregnancies
+oWGxbw8E9IM = { sql = "tracked_entity.prior_live + enrollment.number" } # live births
+fpPtP8xrU1s = { sql = "tracked_entity.prior_still" } # stillbirths
+p4e5Y0GQIxv = { sql = "tracked_entity.prior_loss" } # miscarriages and abortions
+I7dvwZGNgE8 = { sql = "tracked_entity.prior_births + enrollment.number" } # parity
+j3lxVBnaXmy = { sql = "tracked_entity.prior_caesareans" } # caesarean sections
+zBfCDA6TcP0 = { weights = { FULLY_IMMUNIZED = 0.1, NO_DOSES = 0.5, UNKNOWN = 0.4 } } # flu
+nUIaSiVSGTs = { weights = { FULLY_IMMUNIZED = 0.5, UNDER-IMMUNIZED = 0.25, NO_DOSES = 0.15, UNKNOWN = 0.1 } } # TTCV
+igN5iSnrh48 = { weights = { NO_EDUCATION = 0.35, PRIMARY_SCHOOL = 0.2, SECONDARY_SCHOOL = 0.35, HIGHER_EDUCATION = 0.1 } } # education
+
+# Quick Check. A rule hides every stage but the lab and the closure unless "No danger signs" is
+# ticked, so a contact with the other stages has it.
+xb4Z245Bnej = { sql = "case when event.number = 0 then 'FIRST_CONTACT' when u('r') < 0.1 then 'SPECIFIC_COMPLAINT' else 'SCHEDULED_CONTACT' end" } # reason for coming
+dVxPBZBfrOl = true # no danger signs
+v4Qgc0aXtY6 = true # pregnancy confirmed
+d4mOfPlHrEP = { sql = "event.date" } # visit date, unvalidated
+
+# Physical Examinations. Pre-gestational weight stays empty, so the rule assigning the BMI from
+# it is off. The BMI is her BMI before the pregnancy, the same at every contact, as rules assign the
+# Weight category from the BMI of the stage's newest event, which in a whole pregnancy is its last.
+TcOkQ8Qqmlt = { sql = "tracked_entity.height" } # height, cm
+H90qsZViPcS = { sql = "tracked_entity.weight + 0.21 * greatest(enrollment.ga_first + (event.date - enrollment.date) / 7 - 13, 0)" } # weight, kg
+UZnz5QLRvcr = { sql = "tracked_entity.weight / pow(round(tracked_entity.height) / 100, 2)" } # BMI
+UsYtsHtuvwQ = { sql = """case when value.UZnz5QLRvcr::double < 18.5 then 'UNDERWEIGHT'
+                              when value.UZnz5QLRvcr::double < 25 then 'NORMAL_WEIGHT'
+                              when value.UZnz5QLRvcr::double < 30 then 'OVERWEIGHT' else 'OBESE' end""" } # Weight category
+# The vital signs at their spread over a whole pregnancy, not by its week: a filter on one returns
+# the share of contacts it would of real ones.
+L6Toy2TrHHq = { normal = { mean = 36.6, sd = 0.5 }, min = 35, max = 42 } # temperature
+C47wV4EBLaS = { normal = { mean = 86.5, sd = 11.4 }, min = 50, max = 200 } # pulse
+c6Cg8KgNu77 = { constant = true, if = "enrollment.ga_first + (event.date - enrollment.date) / 7 >= 20" } # fetal heartbeat
+# Blood pressure, not measured at every contact; a rule makes the reason mandatory when not.
+M4HEOoEFTAT = { normal = { mean = 115.4, sd = 11 }, min = 80, max = 200, fill = 0.9 } # systolic
+dyYdfamSY2Z = { normal = { mean = 72, sd = 8 }, min = 60, max = "value.M4HEOoEFTAT::double - 10", if = "value.M4HEOoEFTAT is not null" } # diastolic, at least 10 below the systolic
+uM7XWy5YNwB = { constant = true, if = "value.M4HEOoEFTAT is null" } # cannot be taken
+AeG5X06CzW4 = { weights = { NOBPCUFF = 0.7, BROKENBPCUFF = 0.3 }, if = "value.M4HEOoEFTAT is null" } # reason it cannot be taken
+
+# Laboratory Tests and Imaging: every test flag is compulsory, so false unless set here.
+Y0MfiRhxr1a = { bernoulli = "case when event.number = 0 then 0.7 else 0.3 end" } # haemoglobin ordered
+nFDmlLhHJpc = { sql = "value.Y0MfiRhxr1a" } # conducted
+yeZTdZuEZT6 = { normal = { mean = "enrollment.hb", sd = 0.6 }, min = 4, max = 18, if = "value.Y0MfiRhxr1a = 'true'" } # result, g/dL
+S3bsJ9ogxeN = { sql = "event.date", if = "value.Y0MfiRhxr1a = 'true'" } # date
+l4Y80Vl7XcW = { constant = "HB-HAEMOGLOBINOMETER", if = "value.Y0MfiRhxr1a = 'true'" } # type
+e7cIfEBpsZb = { sql = "event.number = 0" } # HIV test required
+D0oK8A3gZqF = { bernoulli = "case when event.number = 0 then 0.7 else 0 end" } # HIV ordered
+MnO12leHYlN = { sql = "value.D0oK8A3gZqF" } # conducted
+YREFGI3SapQ = { sql = "event.date", if = "value.D0oK8A3gZqF = 'true'" } # date
+zo8VyJRKcmi = { sql = "case when enrollment.hiv = 1 then 'POSITIVE' else 'NEGATIVE' end", if = "value.D0oK8A3gZqF = 'true'" } # result
+KYxA0A2j8DB = { sql = "event.number = 0" } # syphilis test required
+oyjuyBhtYzv = { bernoulli = "case when event.number = 0 then 0.4 else 0 end" } # syphilis ordered
+WK70ZuS8z3W = { sql = "value.oyjuyBhtYzv" } # conducted
+XST9vCca14R = { sql = "event.date", if = "value.oyjuyBhtYzv = 'true'" } # date
+gueCJt1Cjru = { sql = "case when enrollment.syphilis = 1 then 'POSITIVE' else 'NEGATIVE' end", if = "value.oyjuyBhtYzv = 'true'" } # result
+lja34jS4kHc = { sql = "value.gueCJt1Cjru" } # syphilis diagnosis
+Uxcgpc4oTCf = { sql = "event.number = 0" } # blood type ordered
+PhaYyR7CpGP = { sql = "value.Uxcgpc4oTCf" } # conducted
+Dp1hN6EwLnh = { sql = "event.date", if = "value.Uxcgpc4oTCf = 'true'" } # date
+# Ultrasound required, as a rule assigns it from the gestational age.
+aKJK1ZXz2GP = { sql = "enrollment.ga_first + (event.date - enrollment.date) / 7 < 24" } # ultrasound required
+TY3VWCjSUpO = { sql = "event.number = 0 and enrollment.ultrasound = 1" } # ordered
+D1XX9Fu3qbe = { sql = "value.TY3VWCjSUpO" } # conducted
+P0WhE9bsD1E = { sql = "event.date", if = "value.TY3VWCjSUpO = 'true'" } # date
+rqMrshNZgg8 = true # urine test required
+HiyzPShLeSi = { bernoulli = 0.5 } # urine ordered
+sSs88SkrDSG = { sql = "value.HiyzPShLeSi" } # conducted
+OolO7jhgkgU = { sql = "event.date", if = "value.HiyzPShLeSi = 'true'" } # date
+PpxBOihc1Y6 = { constant = "NONE", if = "value.HiyzPShLeSi = 'true'" } # protein
+
+# Symptoms and Follow-up.
+CORtBqRWjMG = { sql = "case when enrollment.ga_first + (event.date - enrollment.date) / 7 < 20 or u('f') < 0.95 then 'NORMAL_FETAL_MOVEMENT' else 'REDUCED_OR_POOR_FETAL_MOVEMENT' end" } # fetal movement
+pGfuNJNeTO6 = false # recently quit tobacco
+oSdTuS80H30 = false # second-hand smoke
+
+# Counselling and Treatment: iron, and IPTp-SP from the second contact.
+wEiyT62easj = { constant = 60, fill = 0.8 } # iron, mg
+a0ZYAtqVHCx = { constant = true, if = "event.number = 1", fill = 0.55 } # IPTp-SP dose 1
+oa7Dlo7yGwK = { sql = "event.date", if = "value.a0ZYAtqVHCx = 'true'" } # date
+h5J06d4NN1B = { constant = true, if = "event.number = 2", fill = 0.55 } # dose 2
+tCKneiXc7UT = { sql = "event.date", if = "value.h5J06d4NN1B = 'true'" } # date
+AC4Lpl4aAKz = { constant = true, if = "event.number = 3", fill = 0.55 } # dose 3
+exmXIzagIjh = { sql = "event.date", if = "value.AC4Lpl4aAKz = 'true'" } # date
+
+# Fields no rule reads or assigns, to give a contact its usual number of values.
+r1oMeTA2X5x = { constant = true, fill = 0.3 } # abnormal discharge
+tIl241I6Y9n = { constant = true, fill = 0.3 } # constipation
+uK37G1Ypsgv = { constant = true, fill = 0.3 } # cough
+trlsQgyBXxb = { constant = 0.21, if = "event.number > 0" } # weight gain a week
+G8eAMYZaXnH = false # high risk for HIV
+qlR1FedtJRq = { weights = { "true" = 3, "false" = 1 }, fill = 0.5 } # birth preparedness
+T2bfkalL2LC = { weights = { "true" = 3, "false" = 1 }, fill = 0.5 } # breastfeeding
+
+# Close ANC Record, after the outcome.
+VIEg1M2z5Vs = { sql = "case enrollment.outcome when 1 then 'LIVE_BIRTH' when 2 then 'MISCARRIAGE' else 'STILLBIRTH' end" } # reason for closing
+zjI46c2Zrtd = { sql = "event.date" } # date of closure, a rule's
+f95m3KTUK3t = { sql = "enrollment.date + enrollment.days_to_outcome", if = "enrollment.outcome <> 2" } # delivery date
+kIBErHgsObW = { sql = "case when enrollment.facility_delivery = 1 then 'HEALTH-CARE_FACILITY' else 'HOME' end", if = "enrollment.outcome <> 2" } # place of delivery
+sMOgLHufmve = { sql = "case when enrollment.caesarean = 1 then 'C-SECTION' else 'NORMAL' end", if = "enrollment.outcome <> 2" } # delivery mode
+CfVBzICA1og = { sql = "enrollment.ga_outcome < 37", if = "enrollment.outcome = 1" } # preterm birth
+jEkGBCGQKgX = { sql = "enrollment.birth_weight", if = "enrollment.outcome = 1" } # birth weight, g
+NMj9cCTzr1o = { sql = "enrollment.date + enrollment.days_to_outcome", if = "enrollment.outcome = 2" } # date of miscarriage
+oRAwfsX0TR7 = { constant = true, if = "enrollment.outcome = 1" } # no complications
+
+[program.RMNCAH_ANC.attributes]
+"ANC.A.DE1" = { pattern = '"ANC-" + RANDOM(##########)' } # unique ID
+GIVEN_NAME = { words = { n = 40_000, s = 1.1, vocabulary = "given" } }
+FAMILY_NAME = { words = { n = 100_000, s = 1.05, vocabulary = "family" } }
+PATINFO_DOB = { sql = "record.date - 365.25 * tracked_entity.age" }
+ADDRESS = { sql = "district.name || ', ' || region.name" }
+"Mobile phone number" = { phone = true, fill = 0.7 }
+# Her age at booking, from her date of birth (NI0QRzJvQ0k), as the rule assigns it when she is
+# registered; unvalidated.
+B6TnnFMgmCk = { sql = "date_sub('year', value.NI0QRzJvQ0k::date, of_days(record.date))" }
+
+# EIR: a tracked entity is a child, enrolled at its first vaccination visit. Most are ANC's live
+# births (from); tracked_entities draws only those whose mothers did not come to ANC.
+[program.IMM_EIR]
+tracked_entities = { total = "district.people * 0.024", among = "District", by = "facility.size * facility.weight" }
+enrollments = { status = { ACTIVE = 1 } }
+
+# A live birth of ANC, at the facility of the pregnancy's contacts, from its first visit on.
+[program.IMM_EIR.from]
+enrollments = { of = "RMNCAH_ANC", as = "mother" }
+where = "mother.outcome = 1"
+share = 0.95 # of the births, the children who come to a visit
+relationship = "Mother and child"
+at = "mother.date + mother.days_to_outcome + tracked_entity.age_at_first"
+
+# The mother's attributes a child takes.
+[program.IMM_EIR.from.attributes]
+FAMILY_NAME = "mother.FAMILY_NAME"
+"Primary contact's first name" = "mother.GIVEN_NAME"
+"Primary contact's last name" = "mother.FAMILY_NAME"
+"Primary contact number" = "mother.Mobile phone number"
+"Primary Contact's ID" = "mother.ANC.A.DE1"
+
+# A linked child's birth is its mother's pregnancy's outcome, the others' their own, drawn alike.
+[program.IMM_EIR.trait.tracked_entity]
+own_facility_delivery = { bernoulli = "0.45 + 0.35 * district.urban" }
+own_caesarean = { bernoulli = "0.08 * tracked_entity.own_facility_delivery" }
+own_birth_weight = { normal = { mean = 3100, sd = 450 }, min = 500, max = 5000 }
+own_ga_birth = { sql = """case when u('w') < 0.02 then 28 + 4 * u('d') when u('w') < 0.1 then 32 + 5 * u('d')
+                               when u('w') < 0.29 then 37 + u('d') when u('w') < 0.81 then 38 + 2 * u('d')
+                               when u('w') < 0.94 then 40 + 2 * u('d') else 42 + u('d') end""" }
+own_parity = { poisson = 2.8, plus = 1, max = 12 }
+facility_delivery = { sql = "coalesce(mother.facility_delivery, tracked_entity.own_facility_delivery)" }
+caesarean = { sql = "coalesce(mother.caesarean, tracked_entity.own_caesarean)" }
+birth_weight = { sql = "coalesce(mother.birth_weight, tracked_entity.own_birth_weight)" }
+ga_birth = { sql = "coalesce(mother.ga_outcome, tracked_entity.own_ga_birth)" }
+parity = { sql = "coalesce(mother.prior_births + mother.number + 1, tracked_entity.own_parity)" }
+age_at_first = { uniform = [-0.5, 14.5], round = 0 } # days from birth to its first visit, 0 to 14 alike
+
+[program.IMM_EIR.stage."Birth details"]
+offset = 0
+
+# The visits of WHO's schedule in turn, until the child stops coming, each with the doses due.
+[program.IMM_EIR.stage."Immunization"]
+count = { poisson = 5.4, max = 6, min = 1 }
+spacing = { sql = "[42, 28, 28, 176, 183][event.number] + 14 * u('delay')" }
+
+[program.IMM_EIR.values]
+WUquHs0Al7h = { sql = "round(tracked_entity.birth_weight)", if = "tracked_entity.facility_delivery = 1" } # birth weight, g
+SaCLndgg6On = { sql = "floor(tracked_entity.ga_birth)" } # gestational age
+B5BoWbyB1sY = { sql = "tracked_entity.parity" } # parity
+LtlzGAPWWo8 = "SINGLETON" # birth type
+fF7wxNym0Un = { sql = "case when tracked_entity.caesarean = 1 then 'C-SECTION' else 'NORMAL_VAGINAL' end" } # delivery mode
+ABhkInP0wGY = { sql = "case when tracked_entity.facility_delivery = 1 then 'HEALTH_FACILITY' else 'HOME' end" } # place of birth
+RTA1VXtS6r1 = { sql = "orgunit.uid", if = "tracked_entity.facility_delivery = 1" } # facility of birth
+HdzfEcDLnhX = { weights = { "7" = 0.2, "9" = 0.8 } } # outreach or facility
+bpBUOvqy1Jn = { constant = true, if = "event.number = 0", fill = 0.95 } # BCG
+no7SkAxepi7 = { constant = true, if = "event.number = 0", fill = 0.9 } # bOPV 0
+qEtgKXZlMLE = { constant = true, if = "event.number = 0", fill = 0.85 } # hepatitis B birth dose
+CfPM8lsEMzH = { constant = true, if = "event.number = 1", fill = 0.95 } # bOPV 1
+K3TcJM1ySQA = { constant = true, if = "event.number = 1", fill = 0.95 } # penta 1
+fmXCCPENnwR = { constant = true, if = "event.number = 1", fill = 0.95 } # PCV 1
+nIqQYeSwU9E = { constant = true, if = "event.number = 1", fill = 0.95 } # rotavirus 1
+sDORmAKh32v = { constant = true, if = "event.number = 2", fill = 0.95 } # bOPV 2
+GPOoPDqle3V = { constant = true, if = "event.number = 2", fill = 0.95 } # penta 2
+PvHUllrtPiy = { constant = true, if = "event.number = 2", fill = 0.95 } # PCV 2
+wYg2gOWSyJG = { constant = true, if = "event.number = 2", fill = 0.95 } # rotavirus 2
+nQeUfqPjK5o = { constant = true, if = "event.number = 3", fill = 0.95 } # bOPV 3
+pxCZNoqDVJC = { constant = true, if = "event.number = 3", fill = 0.95 } # penta 3
+B4eJCy6LFLZ = { constant = true, if = "event.number = 3", fill = 0.95 } # PCV 3
+Fu83xQ4NKuQ = { constant = true, if = "event.number = 3", fill = 0.9 } # IPV 1
+g8dMiUOTFla = { constant = true, if = "event.number = 4", fill = 0.95 } # measles 1
+q7KhhAnm5GA = { constant = true, if = "event.number = 4", fill = 0.95 } # rubella 1
+Bxh1xgIY9nA = { constant = true, if = "event.number = 5", fill = 0.95 } # measles 2
+
+[program.IMM_EIR.attributes]
+GIVEN_NAME = { words = { n = 40_000, s = 1.1, vocabulary = "given" } }
+FAMILY_NAME = { words = { n = 100_000, s = 1.05, vocabulary = "family" } }
+PATINFO_DOB = { sql = "record.date - tracked_entity.age_at_first" }
+PATINFO_SEX = { weights = { FEMALE = 1, MALE = 1 } }
+UNIQUE_SYS_ID_EPI = { pattern = '"EPI_" + RANDOM(########)' }
+VPD_CS_PATINFO_RESADMIN0 = { sql = "district.name || ', ' || region.name" } # home address
+"Primary contact's first name" = { words = { n = 40_000, s = 1.1, vocabulary = "given" } }
+"Primary contact's last name" = { words = { n = 100_000, s = 1.05, vocabulary = "family" } }
+"Primary contact number" = { phone = true, fill = 0.7 }
+
+[records]
+deleted = 0.01
+followup = 0.03
+assigned = 0.05
+updated = { share = 0.1, after = { exponential = 30 } }
+
+[load]
+order = "created" # rows in the order a live instance inserts them

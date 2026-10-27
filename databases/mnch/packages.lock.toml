@@ -1,0 +1,24 @@
+# The published packages the metadata in metadata/ was extracted from, pinned by sha256.
+#
+# The packages are pinned so that the first commit of each metadata file can be checked against
+# what DHIS2 publishes (`dbgen lock --check`): `json` is the file in the zip, `metadata` the file
+# extracted from it, relative to this file. Bump an entry deliberately (`dbgen lock --update
+# <package>`) and review its diff.
+
+[packages.anc]
+description = "WHO/DHIS2 Antenatal Care Registry (ANC) tracker package 1.0.0 for DHIS2 2.37"
+url = "https://packages.dhis2.org/en/RMNCAH_ANC/1.0.0/DHIS2.37/RMNCAH_ANC_1.0.0_DHIS2.37.zip"
+sha256 = "2df0b9b94cf83307b8272a57cf7fdb3266e6e76d64d584d2cbc0216fd4c4bbfc"
+json = "RMNCAH_ANC_1.0.0_DHIS2.37/RMNCAH_ANC_COMPLETE_1.0.0_DHIS2.37/RMNCAH_ANC_COMPLETE_1.0.0_DHIS2.37.json"
+metadata = "metadata/anc.json"
+licence = "not stated in the package; published by DHIS2 at https://dhis2.org/metadata-downloads/"
+retrieved = "2026-09-23"
+
+[packages.eir]
+description = "WHO/DHIS2 Electronic Immunization Registry (EIR) tracker package 1.1.1 for DHIS2 2.40"
+url = "https://packages.dhis2.org/en/IMM_EIR/1.1.1/DHIS2.40/IMM_EIR_1.1.1_DHIS2.40.zip"
+sha256 = "36b5c9e1f64ee297d9cc9f01bfea99ae0cf9811267a0a0f06ad4f359f0c69c8b"
+json = "IMM_EIR_1.1.1_DHIS2.40/IMM_EIR_COMPLETE_1.1.1_DHIS2.40/IMM_EIR_COMPLETE_1.1.1_DHIS2.40.json"
+metadata = "metadata/eir.json"
+licence = "not stated in the package; published by DHIS2 at https://dhis2.org/metadata-downloads/"
+retrieved = "2026-09-24"

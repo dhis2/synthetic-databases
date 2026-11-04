@@ -174,9 +174,15 @@ output/
 * **CI**, on `main` and pull requests: the pre-commit hooks and the tests, `dbgen explain` of the
   spec, and a release of the ward along the tree to 43, checked at each version, on a standard
   runner with the caps lowered. No upload.
-* **release**, on a tag: the release of QP1613 and the upload, on a larger runner. Then, if set
-  up, core's perf tests' smoke profile on each version, dispatched to `dhis2/dhis2-core`.
-* **nightly**: `dev`, on the larger runner.
+* **release**, on a tag: the release of QP1613 and the upload. Then, if set up, core's perf
+  tests' smoke profile on each version, dispatched to `dhis2/dhis2-core`, on the DHIS2 image each
+  version was checked with. Run from a branch, it is a dry run: no upload, no perf tests.
+* **nightly**: `dev`, when it is out of date.
+
+The release and the nightly run on a standard runner with the caps lowered, as CI does. Whether
+QP1613 fits it is to be seen, by a dry run of the release; if not, an org owner adds a larger
+runner, such as `ubuntu-22.04-16c-64g-600gb`, in a runner group whose repository access is this
+repository, and the two workflows name it.
 
 ## Add a DHIS2 version or a fix-up
 
@@ -202,15 +208,14 @@ Then a release, a tag. `dev/check.sql` holds the 2.44 notes' queries; two read t
 
 Before the first release:
 
-* dbgen is tagged `v0.1.0`, and `[tool.uv.sources]` pins it by tag rather than by commit.
-* This repository lives in the dhis2 org: only an org owner adds a larger runner, in a runner
-  group whose repository access is this repository. The workflows name
-  `ubuntu-22.04-16c-64g-600gb`.
 * Secrets `PERF_DATABASES_AWS_ACCESS_KEY_ID` and `PERF_DATABASES_AWS_SECRET_ACCESS_KEY`, allowed
-  `s3:PutObject` under `perfland-mnch/` only.
+  `s3:PutObject` and `s3:AbortMultipartUpload` under `perfland-mnch/` only.
 * Core's `run-simulation.sh` allows `DB_TYPE=perfland-mnch`. Then the release's perf tests:
   variable `CORE_PERF_TESTS=true` and secret `CORE_PERF_TESTS_TOKEN`, allowed to run workflows of
   `dhis2/dhis2-core`.
+
+dbgen stays pinned by commit until both repositories are stable. Then it is tagged `v0.1.0`, and
+`[tool.uv.sources]` pins it by tag.
 
 ## Development
 

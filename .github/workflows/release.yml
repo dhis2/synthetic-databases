@@ -40,7 +40,7 @@ jobs:
           version: "0.13.7"
       - run: uv sync --locked
       - name: Build, upgrade and check 42.0, 42, 43.0 and 43
-        run: uv run --locked pipeline release mnch
+        run: uv run pipeline release mnch
       - name: Upload the manifests and DHIS2's logs
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -60,7 +60,7 @@ jobs:
             echo "::error::secret PERF_DATABASES_AWS_ACCESS_KEY_ID is not set"
             exit 1
           fi
-          uv run --locked pipeline publish mnch
+          uv run pipeline publish mnch
 
   # Core's perf tests run only in dhis2/dhis2-core, on its perf runner: dispatch them there, one
   # smoke run per version, as a consumer restores the published dump.

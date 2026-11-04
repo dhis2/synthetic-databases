@@ -21,14 +21,19 @@ jobs:
     runs-on: ubuntu-22.04-16c-64g-600gb
     timeout-minutes: 240
     steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
-      - run: uv sync --frozen
+      # Actions pinned by commit, which Dependabot updates (.github/dependabot.yml).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.7"
+      - run: uv sync --locked
       - name: Fetch the published 43, upgrade it to dev and check it
-        run: uv run pipeline nightly mnch
+        run: uv run --locked pipeline nightly mnch
       - name: Upload the manifest and DHIS2's logs
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: nightly
           path: |
@@ -45,4 +50,4 @@ jobs:
             echo "::error::secret PERF_DATABASES_AWS_ACCESS_KEY_ID is not set"
             exit 1
           fi
-          uv run pipeline publish mnch dev
+          uv run --locked pipeline publish mnch dev

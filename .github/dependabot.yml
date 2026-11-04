@@ -1,0 +1,24 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7 # skip releases younger than a week
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      uv:
+        patterns: ["*"]
+    ignore:
+      # Bumped deliberately: its release is part of what a tag publishes, and it pins DuckDB, the
+      # DHIS2 and Postgres images it builds with.
+      - dependency-name: synthetic-db-generator

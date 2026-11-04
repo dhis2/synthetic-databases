@@ -66,8 +66,8 @@ keeps versions, so an overwrite that broke something can be rolled back.
 
 ### The area
 
-`databases/mnch/publish.toml` names the area of a release, district QP1613, and the pull request
-job's, ward QP0602-02:
+`databases/mnch/publish.toml` names the area of a release, district QP1613, and CI's, ward
+QP0602-02:
 
 | | district QP1613 | ward QP0602-02 |
 |---|---|---|
@@ -89,7 +89,7 @@ synthetic-databases/
 │                              with their history, and publish.toml: the type and the areas
 ├── upgrades/<version>/        check.sql, pre.sql, post.sql of the upgrade to the version
 ├── src/pipeline/              build, upgrade, check, fetch, publish
-└── .github/workflows/         pull-request.yml, release.yml, nightly.yml
+└── .github/workflows/         ci.yml, release.yml, nightly.yml
 ```
 
 A release of the area of `publish.toml`:
@@ -138,7 +138,7 @@ The same `DBGEN_` variables cap dbgen's build stack and the pipeline's.
 
 ```sh
 uv sync
-uv run pipeline release mnch --test   # the pull request job: the ward along the tree
+uv run pipeline release mnch --test   # CI's: the ward along the tree
 uv run pipeline release mnch          # build, upgrade and check 42.0, 42, 43.0 and 43
 uv run pipeline publish mnch --dry-run
 ```
@@ -160,9 +160,9 @@ output/
 
 ## Jobs
 
-* **pull request**: lint and test the pipeline, `dbgen explain` of the spec, `dbgen lock --check`
-  of its metadata, and a release of the ward along the tree to 43, checked at each version, on a
-  standard runner with the caps lowered. No upload.
+* **CI**, on `main` and pull requests: the pre-commit hooks and the tests, `dbgen explain` of the
+  spec, `dbgen lock --check` of its metadata, and a release of the ward along the tree to 43,
+  checked at each version, on a standard runner with the caps lowered. No upload.
 * **release**, on a tag: the release of QP1613 and the upload, on a larger runner. Then, if set
   up, core's perf tests' smoke profile on each version, dispatched to `dhis2/dhis2-core`.
 * **nightly**: `dev`, on the larger runner.
@@ -210,7 +210,14 @@ uv run ty check
 uv run pytest
 ```
 
-The tests need no Docker. `uv run pre-commit install` runs ruff and ty on every commit.
+The tests need no Docker. `uv run pre-commit install` runs ruff and ty on every commit. CI runs
+the same hooks and the tests on `main` and on pull requests. Dependabot updates the actions and the
+uv dependencies weekly, but dbgen, which is bumped deliberately in a pull request.
+
+### Release
+
+A release is a tag `vX.Y.Z` on `main`, pushed to GitHub: `release.yml` builds, upgrades, checks and
+publishes every version from it.
 
 ## Licence
 

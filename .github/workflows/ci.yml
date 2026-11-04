@@ -38,7 +38,7 @@ jobs:
       - name: Check the metadata against its packages
         run: uv run --locked dbgen lock --check
 
-  ward:
+  release-test:
     # A standard runner of a public repository: 4 CPUs, 16 GB, 14 GB of disk. The caps fit the
     # build stack and the pipeline's into it, and dbgen leaves 3 GiB beside them.
     runs-on: ubuntu-24.04
@@ -68,7 +68,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ward
+          name: release-test
           path: |
             output/publish/**/manifest.json
             output/logs/

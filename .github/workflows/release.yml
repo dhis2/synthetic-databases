@@ -1,6 +1,9 @@
 # A release, on a tag: build the release area at 42.0, upgrade it along the tree, check every
 # version and publish them all, or none. Then run core's perf tests on each from the bucket.
 #
+# Dispatched from a branch, it is a dry run: the same build, upgrades and checks, then publish
+# --dry-run, which shows what it would upload and why it would refuse. No upload, no perf tests.
+#
 # Needs, of the organization and this repository:
 # * secrets PERF_DATABASES_AWS_ACCESS_KEY_ID and PERF_DATABASES_AWS_SECRET_ACCESS_KEY, allowed
 #   s3:PutObject under s3://databases.dhis2.org/perfland-mnch/
@@ -24,7 +27,6 @@ concurrency:
 
 jobs:
   release:
-    if: startsWith(github.ref, 'refs/tags/')
     # A standard runner of a public repository: 4 CPUs, 16 GB, 14 GB of disk, with the caps of
     # ci.yml's release-test. Whether the release area fits it is to be seen; if not, a larger
     # runner, such as the organization's ubuntu-22.04-16c-64g-600gb.
@@ -62,7 +64,11 @@ jobs:
             output/publish/**/manifest.json
             output/logs/
           if-no-files-found: ignore
+      - name: Show what a release would publish
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        run: uv run pipeline publish mnch --dry-run
       - name: Publish
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.PERF_DATABASES_AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.PERF_DATABASES_AWS_SECRET_ACCESS_KEY }}
@@ -78,7 +84,7 @@ jobs:
   # smoke run per version, as a consumer restores the published dump.
   perf-tests:
     needs: release
-    if: vars.CORE_PERF_TESTS == 'true'
+    if: startsWith(github.ref, 'refs/tags/') && vars.CORE_PERF_TESTS == 'true'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false

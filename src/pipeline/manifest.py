@@ -5,8 +5,9 @@
 * pipeline: the commit, clean tree and tag of the pipeline that made the dump; dbgen: its version
   and commit, from the build's provenance
 * images: the DHIS2 image, by digest, and the Postgres the chain ran on
-* chain: each step from the build, its DHIS2, its fix-ups, the migrations Flyway ran with their
-  times, and the seconds of its restore, its start and its dump
+* chain: each step from the build, the sha256 of the dump it upgraded, its DHIS2, its fix-ups,
+  the migrations Flyway ran with their times, and the seconds of its restore, its start and its
+  dump
 * checks: the results of `pipeline check`, null until it ran
 * build: dbgen's manifest, as `dbgen build` wrote it
 

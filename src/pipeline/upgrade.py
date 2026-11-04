@@ -64,6 +64,8 @@ def run(database: Database, name: str, timeout: int) -> dict:
     step = {
         "version": name,
         "from": version.source,
+        # The source's dump, so a nightly can tell whether the published source changed since.
+        "source_sha256": source["dump"]["sha256"],
         "image": image,
         "dhis2": labels.get("DHIS2_VERSION"),
         "pipeline": state["commit"],

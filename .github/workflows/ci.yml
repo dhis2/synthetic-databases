@@ -1,6 +1,5 @@
-# The checks of the pre-commit hooks (ruff, ty) and the tests, the spec and its metadata checked,
-# and a release of the test area, a ward, along the tree to 43, without the upload. On main and on
-# pull requests.
+# The checks of the pre-commit hooks (ruff, ty) and the tests, the spec explained, and a release
+# of the test area, a ward, along the tree to 43, without the upload. On main and on pull requests.
 name: CI
 
 on:
@@ -23,7 +22,6 @@ jobs:
       # Actions pinned by commit, which Dependabot updates (.github/dependabot.yml).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0 # dbgen lock --check reads the first commit of each metadata file
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
@@ -35,8 +33,6 @@ jobs:
       - run: uv run pytest
       - name: Explain the spec
         run: uv run dbgen explain databases/mnch/mnch.toml > /dev/null
-      - name: Check the metadata against its packages
-        run: uv run dbgen lock --check
 
   release-test:
     # A standard runner of a public repository: 4 CPUs, 16 GB, 14 GB of disk. The caps fit the

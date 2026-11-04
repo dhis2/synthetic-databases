@@ -161,8 +161,8 @@ output/
 ## Jobs
 
 * **CI**, on `main` and pull requests: the pre-commit hooks and the tests, `dbgen explain` of the
-  spec, `dbgen lock --check` of its metadata, and a release of the ward along the tree to 43,
-  checked at each version, on a standard runner with the caps lowered. No upload.
+  spec, and a release of the ward along the tree to 43, checked at each version, on a standard
+  runner with the caps lowered. No upload.
 * **release**, on a tag: the release of QP1613 and the upload, on a larger runner. Then, if set
   up, core's perf tests' smoke profile on each version, dispatched to `dhis2/dhis2-core`.
 * **nightly**: `dev`, on the larger runner.

@@ -16,9 +16,9 @@ deliberately, in a pull request of its own, never as part of another change.
 `venv`, `python -m pip`, or system-Python commands. If you need to run something, prefix with
 `uv run ...` or `uv tool run ...`.
 
-CI runs `uv run pre-commit run --all-files` (ruff, ty), `uv run pytest`, `dbgen explain` and
-`dbgen lock --check`; the tests need no Docker. To test a change end-to-end, run CI's release of
-the ward, which needs Docker and takes about 10 minutes:
+CI runs `uv run pre-commit run --all-files` (ruff, ty), `uv run pytest` and `dbgen explain`; the
+tests need no Docker. To test a change end-to-end, run CI's release of the ward, which needs
+Docker and takes about 10 minutes:
 
 ```sh
 uv run pipeline release mnch --test

@@ -217,6 +217,16 @@ def labels(image: str) -> dict[str, str]:
     return {k: v for k, v in sorted((found or {}).items()) if k.startswith("DHIS2_")}
 
 
+def remote_labels(image: str) -> dict[str, str]:
+    """The labels of an image in its registry, without pulling it: of linux/amd64, for an image
+    of several platforms."""
+    found = json.loads(
+        _docker("buildx", "imagetools", "inspect", "--format", "{{json .Image}}", image)
+    )
+    config = found["config"] if "config" in found else found["linux/amd64"]["config"]
+    return config.get("Labels") or {}
+
+
 def _docker(*args: str) -> str:
     try:
         result = subprocess.run(["docker", *args], capture_output=True, text=True)

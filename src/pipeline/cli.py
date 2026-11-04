@@ -14,6 +14,7 @@ examples:
   pipeline release mnch           build, upgrade and check every version of a release
   pipeline publish mnch --dry-run
   pipeline nightly mnch           the published 43 upgraded to dev, checked
+  pipeline nightly mnch --if-changed  the same, only if the published dev is out of date
   pipeline upgrade mnch 43.0
   pipeline check mnch 43.0
 """
@@ -80,6 +81,12 @@ def main(argv: list[str] | None = None) -> None:
         "--local",
         action="store_true",
         help="upgrade the source version in output/publish/ instead of the published one",
+    )
+    p.add_argument(
+        "--if-changed",
+        action="store_true",
+        help="upgrade only if the published nightly version is out of date: none published, "
+        "another pipeline commit, another published source, or new DHIS2 migrations",
     )
     timeout(p)
     p.set_defaults(func=cmd_nightly)
@@ -152,13 +159,21 @@ def cmd_fetch(args: argparse.Namespace, db: Database) -> None:
 
 
 def cmd_nightly(args: argparse.Namespace, db: Database) -> None:
-    from pipeline import check, fetch, upgrade
+    from pipeline import check, fetch, nightly, upgrade
 
-    nightly = [v for v in lock().versions.values() if v.nightly]
-    if not nightly:
+    if args.if_changed and args.local:
+        raise UsageError("--if-changed compares with what is published, --local with output/")
+    versions = [v for v in lock().versions.values() if v.nightly]
+    if not versions:
         raise UsageError("lock.toml has no version with nightly = true")
-    for version in nightly:
+    for version in versions:
         assert version.source is not None
+        if args.if_changed:
+            reasons = nightly.changes(db, version)
+            if not reasons:
+                print(f"nightly: the published {version.name} is current", file=sys.stderr)
+                continue
+            print(f"nightly: {version.name}: {'; '.join(reasons)}", file=sys.stderr)
         if not args.local:
             fetch.run(db, version.source)
         upgrade.run(db, version.name, args.timeout)

@@ -114,6 +114,12 @@ A release of the area of `publish.toml`:
 
 `dev` is the nightly's: the published 43 upgraded to `dhis2/core-dev:latest`, checked and published
 as `dev`. A failure there is a migration of master failing or slow on realistic data: tell core.
+It upgrades only when the published `dev` is out of date: none is published, the pipeline is at
+another commit, the published 43 is another dump than `dev` was upgraded from, or a commit of
+master since the one `dev` was migrated by touched DHIS2's migrations (GitHub's API, on the
+revision label of `core-dev:latest`). Without new migrations, DHIS2 starts on the published `dev`
+as it is, so republishing it would only add an object version to the bucket and a rebuild on the
+perf runner.
 
 ### Manifest
 
@@ -149,7 +155,8 @@ uv run pipeline publish mnch --dry-run
 
 `pipeline build`, `upgrade` and `check` run one step, such as `uv run pipeline upgrade mnch 43`
 once 43.0 is there. `pipeline nightly mnch` fetches the published 43 and upgrades it to dev;
-`--local` upgrades the 43 of `output/` instead. `pipeline <command> -h` tells more.
+`--if-changed` only if the published `dev` is out of date, `--local` upgrades the 43 of `output/`
+instead. `pipeline <command> -h` tells more.
 
 What it writes, none of it committed:
 

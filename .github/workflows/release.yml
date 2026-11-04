@@ -2,7 +2,6 @@
 # version and publish them all, or none. Then run core's perf tests on each from the bucket.
 #
 # Needs, of the organization and this repository:
-# * the larger runner below, in a runner group that allows this repository
 # * secrets PERF_DATABASES_AWS_ACCESS_KEY_ID and PERF_DATABASES_AWS_SECRET_ACCESS_KEY, allowed
 #   s3:PutObject under s3://databases.dhis2.org/perfland-mnch/
 # * for the perf tests: variable CORE_PERF_TESTS set to true, secret CORE_PERF_TESTS_TOKEN allowed
@@ -26,9 +25,22 @@ concurrency:
 jobs:
   release:
     if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-22.04-16c-64g-600gb
+    # A standard runner of a public repository: 4 CPUs, 16 GB, 14 GB of disk, with the caps of
+    # ci.yml's release-test. Whether the release area fits it is to be seen; if not, a larger
+    # runner, such as the organization's ubuntu-22.04-16c-64g-600gb.
+    runs-on: ubuntu-24.04
     timeout-minutes: 360
+    env:
+      DBGEN_DB_MEMORY: 3g
+      DBGEN_WEB_MEMORY: 4g
+      DBGEN_WEB_HEAP: 2500m
+      DBGEN_HEADROOM: 3g
     steps:
+      - name: Free disk space
+        # dbgen needs 10 GiB free where Docker keeps its data, the runner has 14 GB.
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df --human-readable /
       # Actions pinned by commit, which Dependabot updates (.github/dependabot.yml).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

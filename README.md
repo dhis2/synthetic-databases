@@ -50,10 +50,14 @@ aws s3 cp --no-sign-request s3://databases.dhis2.org/perfland-mnch/43/manifest.j
 
 ### Run a perf test on it
 
-Core's harness takes the type and version, the tag of `DHIS2_IMAGE`:
+Core's harness takes the type and version, the tag of `DHIS2_IMAGE`. Give `DHIS2_IMAGE` by
+digest, the image the dump was checked with, `images.dhis2` of its manifest: a tag such as `43`
+moves with each patch, and the harness does not pull it again, so a cached one may be an older
+patch than the dump's.
 
 ```sh
-DHIS2_IMAGE=dhis2/core:43 DB_TYPE=perfland-mnch DB_VERSION=43 \
+DHIS2_IMAGE=dhis2/core:43@sha256:5a73b9de002b06ab1a4a61674325370107d79acbaec54e00594839837346fd23 \
+  DB_TYPE=perfland-mnch DB_VERSION=43 \
   SIMULATION_CLASS=org.hisp.dhis.test.tracker.PerfLandMnchTrackerTest \
   MVN_ARGS=-Dprofile=smoke ./run-simulation.sh
 ```

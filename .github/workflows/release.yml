@@ -32,6 +32,9 @@ jobs:
     # runner, such as the organization's ubuntu-22.04-16c-64g-600gb.
     runs-on: ubuntu-24.04
     timeout-minutes: 360
+    outputs:
+      versions: ${{ steps.images.outputs.versions }}
+      images: ${{ steps.images.outputs.images }}
     env:
       DBGEN_DB_MEMORY: 3g
       DBGEN_WEB_MEMORY: 4g
@@ -79,6 +82,17 @@ jobs:
             exit 1
           fi
           uv run pipeline publish mnch
+      - name: The DHIS2 image each version was checked with, by digest
+        id: images
+        # From the manifests, for the perf tests: a tag such as dhis2/core:43 moves with each patch,
+        # and core's harness pulls only dhis2/core-dev and core-pr, so it could run a cached older
+        # patch than the one the dump was migrated and checked with.
+        run: |
+          images=$(jq --slurp --compact-output 'map({(.version): .images.dhis2}) | add' \
+            output/publish/*/*/manifest.json)
+          echo "images=$images" >> "$GITHUB_OUTPUT"
+          echo "versions=$(jq --compact-output keys_unsorted <<< "$images")" >> "$GITHUB_OUTPUT"
+          jq . <<< "$images"
 
   # Core's perf tests run only in dhis2/dhis2-core, on its perf runner: dispatch them there, one
   # smoke run per version, as a consumer restores the published dump.
@@ -89,18 +103,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["42.0", "42", "43.0", "43"]
+        version: ${{ fromJSON(needs.release.outputs.versions) }}
     steps:
       - name: Run PerfLandMnchTrackerTest's smoke profile in dhis2/dhis2-core
         env:
           GH_TOKEN: ${{ secrets.CORE_PERF_TESTS_TOKEN }}
           REF: ${{ vars.CORE_PERF_TESTS_REF || 'master' }}
           VERSION: ${{ matrix.version }}
+          IMAGE: ${{ fromJSON(needs.release.outputs.images)[matrix.version] }}
         run: |
           gh workflow run performance-tests.yml --repo dhis2/dhis2-core \
             --field perf_tests_git_ref="$REF" \
             --field test_name="perfland-mnch-$VERSION" \
-            --field test_env="DHIS2_IMAGE=dhis2/core:$VERSION
+            --field test_env="DHIS2_IMAGE=$IMAGE
           SIMULATION_CLASS=org.hisp.dhis.test.tracker.PerfLandMnchTrackerTest
           DB_TYPE=perfland-mnch
           DB_VERSION=$VERSION

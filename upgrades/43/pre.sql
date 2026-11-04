@@ -1,0 +1,3 @@
+-- Fix-ups that run on the dump before DHIS2 43 starts and Flyway migrates it, in one transaction.
+-- Each says why, and which migration note it answers. None yet: dbgen writes none of the data the
+-- notes fix.

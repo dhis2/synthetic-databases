@@ -1,0 +1,11 @@
+# What the pipeline publishes of this database. The type names its folder in the bucket,
+# s3://databases.dhis2.org/<type>/<version>/, and its dump, dhis2-db-<type>.sql.gz, as core's
+# harness reads DB_TYPE. Perf Land is the made-up country, MNCH its programs, ANC and EIR.
+type = "perfland-mnch"
+
+# The area of a release: district QP1613, 154,557 tracked entities and 2.2 million events.
+orgunit = "QP1613"
+
+# The area the pull request job builds and upgrades: ward QP0602-02, 7,043 tracked entities and
+# 98,243 events, built in about 4 minutes.
+test_orgunit = "QP0602-02"

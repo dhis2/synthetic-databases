@@ -1,0 +1,2 @@
+-- Fix-ups that run after Flyway migrated the dump to DHIS2 43, and DHIS2 stopped, in one
+-- transaction. Each says why, and which migration note it answers. None yet.

@@ -1,0 +1,81 @@
+# Postgres and DHIS2 of an upgrade or a check (stack.py). The pipeline passes in the images and
+# the caps. The project and ports differ from dbgen's build stack (25432, 28080) and core's perf
+# harness (5432, 8080), so each runs beside the others. The pipeline removes the database after
+# each upgrade and check.
+name: synthetic-databases
+
+services:
+  db:
+    image: "${POSTGRES_IMAGE:?set by the pipeline from lock.toml}"
+    mem_limit: ${DBGEN_DB_MEMORY:?set by the pipeline}
+    cpus: ${DBGEN_DB_CPUS:?set by the pipeline}
+    # Index builds of the migrations take maintenance_work_mem of shared memory.
+    shm_size: 2gb
+    # Nothing here needs to survive a crash, the result is dumped. As dbgen builds, but with
+    # autovacuum on, as an instance runs its migrations.
+    command: >
+      postgres
+      -c wal_level=minimal
+      -c max_wal_senders=0
+      -c fsync=off
+      -c synchronous_commit=off
+      -c full_page_writes=off
+      -c max_wal_size=4GB
+      -c checkpoint_timeout=30min
+      -c shared_buffers=1GB
+      -c work_mem=32MB
+      -c maintenance_work_mem=1GB
+      -c max_parallel_maintenance_workers=2
+    # The superuser is dhis, as DHIS2 runs as the owner of the objects it migrates. The pipeline
+    # creates the database dhis itself, from template0.
+    environment:
+      POSTGRES_USER: dhis
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: dhis
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:35432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --host=127.0.0.1 --username=dhis --dbname=postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 60s
+      start_interval: 1s
+
+  web:
+    image: "${DHIS2_IMAGE:?set by the pipeline for the version}"
+    mem_limit: ${DBGEN_WEB_MEMORY:?set by the pipeline}
+    cpus: ${DBGEN_WEB_CPUS:?set by the pipeline}
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx${DBGEN_WEB_HEAP:?set by the pipeline} -Xms1g"
+    volumes:
+      - ./dhis.conf:/opt/dhis2/dhis.conf:ro
+    ports:
+      - "127.0.0.1:38080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # A sidecar checks health, so the check does not depend on curl in the DHIS2 image. DHIS2
+  # answers /api/ping only once Flyway has migrated and the application started. A migration can
+  # take long, so the start period does not end first: the pipeline's timeout bounds the wait.
+  web-healthcheck:
+    image: "${CURL_IMAGE:?set by the pipeline from lock.toml}"
+    mem_limit: 64m
+    init: true
+    network_mode: service:web
+    command: ["sleep", "infinity"]
+    depends_on:
+      - web
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl --fail --silent http://localhost:8080/api/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 24h
+      start_interval: 2s
+
+volumes:
+  pgdata:

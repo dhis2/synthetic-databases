@@ -1,0 +1,86 @@
+# A release, on a tag: build the release area at 42.0, upgrade it along the tree, check every
+# version and publish them all, or none. Then run core's perf tests on each from the bucket.
+#
+# Needs, of the organization and this repository:
+# * the larger runner below, in a runner group that allows this repository
+# * secrets PERF_DATABASES_AWS_ACCESS_KEY_ID and PERF_DATABASES_AWS_SECRET_ACCESS_KEY, allowed
+#   s3:PutObject under s3://databases.dhis2.org/perfland-mnch/
+# * for the perf tests: variable CORE_PERF_TESTS set to true, secret CORE_PERF_TESTS_TOKEN allowed
+#   to run workflows of dhis2/dhis2-core, and optionally variable CORE_PERF_TESTS_REF, the ref of
+#   core's perf tests (default: master)
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One upload to the bucket at a time, the nightly's among them.
+concurrency:
+  group: publish-perfland-mnch
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-22.04-16c-64g-600gb
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # the tag, which publish requires at HEAD
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v10
+      - run: uv sync --frozen
+      - name: Build, upgrade and check 42.0, 42, 43.0 and 43
+        run: uv run pipeline release mnch
+      - name: Upload the manifests and DHIS2's logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release
+          path: |
+            output/publish/**/manifest.json
+            output/logs/
+          if-no-files-found: ignore
+      - name: Publish
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.PERF_DATABASES_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.PERF_DATABASES_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: eu-west-1
+        run: |
+          if [ -z "$AWS_ACCESS_KEY_ID" ]; then
+            echo "::error::secret PERF_DATABASES_AWS_ACCESS_KEY_ID is not set"
+            exit 1
+          fi
+          uv run pipeline publish mnch
+
+  # Core's perf tests run only in dhis2/dhis2-core, on its perf runner: dispatch them there, one
+  # smoke run per version, as a consumer restores the published dump.
+  perf-tests:
+    needs: release
+    if: vars.CORE_PERF_TESTS == 'true'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["42.0", "42", "43.0", "43"]
+    steps:
+      - name: Run PerfLandMnchTrackerTest's smoke profile in dhis2/dhis2-core
+        env:
+          GH_TOKEN: ${{ secrets.CORE_PERF_TESTS_TOKEN }}
+          REF: ${{ vars.CORE_PERF_TESTS_REF || 'master' }}
+          VERSION: ${{ matrix.version }}
+        run: |
+          gh workflow run performance-tests.yml --repo dhis2/dhis2-core \
+            --field perf_tests_git_ref="$REF" \
+            --field test_name="perfland-mnch-$VERSION" \
+            --field test_env="DHIS2_IMAGE=dhis2/core:$VERSION
+          SIMULATION_CLASS=org.hisp.dhis.test.tracker.PerfLandMnchTrackerTest
+          DB_TYPE=perfland-mnch
+          DB_VERSION=$VERSION
+          MVN_ARGS=-Dprofile=smoke"
+          echo "dispatched; see https://github.com/dhis2/dhis2-core/actions/workflows/performance-tests.yml"

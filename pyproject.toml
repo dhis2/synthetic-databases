@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "synthetic-databases"
+version = "0.1.0"
+description = "DHIS2 performance test databases: built with dbgen, upgraded, checked and published"
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+requires-python = ">=3.13"
+authors = [{name = "DHIS2"}]
+dependencies = [
+    # dbgen, pinned by commit in [tool.uv.sources]: its release is part of what a tag publishes.
+    "synthetic-db-generator",
+    "httpx>=0.28.0",
+    "isal>=1.8.0",
+    "psycopg[binary]>=3.2.0",
+]
+
+[project.urls]
+Repository = "https://github.com/dhis2/synthetic-databases"
+
+[project.scripts]
+pipeline = "pipeline.cli:main"
+
+[tool.uv]
+package = true
+
+[tool.uv.sources]
+# By commit until dbgen is tagged; then by tag, such as
+# { git = "https://github.com/dhis2/synthetic-db-generator", tag = "v0.1.0" }.
+synthetic-db-generator = { git = "https://github.com/dhis2/synthetic-db-generator", rev = "526bac9a3695f0a903faf5fbaa2112a5d1b079dd" }
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.2.0",
+    "pytest>=8.4.0",
+    "ruff>=0.12.1",
+    "ty>=0.0.84",
+]
+
+[tool.setuptools.package-data]
+pipeline = ["docker/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "UP", # pyupgrade
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

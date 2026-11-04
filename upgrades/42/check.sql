@@ -1,0 +1,3 @@
+-- The queries of the migration notes of the upgrade from 42.0 to 42, each must return no rows.
+-- None: the 2.42 notes are of migrations 42.0 runs already (V2_42_26, V2_42_28), and the patches'
+-- migrations, V2_42_44 to V2_42_54, add indexes and columns that need no data to hold.

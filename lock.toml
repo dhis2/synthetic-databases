@@ -1,0 +1,33 @@
+# The images the pipeline upgrades to and checks on, pinned by digest. Bump one deliberately, in a
+# pull request with the checks and fix-ups its migration notes ask for (see the README).
+#
+# The base, 42.0, is dbgen's build: dbgen's own lock.toml pins the DHIS2 and Postgres images it
+# builds with. Each version below names the version it upgrades from, so they form a tree from
+# the base, and its folder in upgrades/ holds its fix-ups.
+
+base = "42.0"
+
+[images]
+# The Postgres every upgrade and check runs on, the one dbgen builds on.
+postgres = "ghcr.io/baosystems/postgis:16-3.5@sha256:0f1c5c0f70f03d4d19ad1d7308d86e6162dff5429c491002298a7b5e46d2f2e8"
+# The healthcheck of DHIS2.
+curl = "curlimages/curl:8.21.0@sha256:7c12af72ceb38b7432ab85e1a265cff6ae58e06f95539d539b654f2cfa64bb13"
+
+[versions."42"]
+from = "42.0"
+dhis2 = "dhis2/core:42@sha256:4475f37eb0f41109a88ce35902257bac92392f7af6d52ca5511c566e632c6736" # 2.42.7.1
+
+# From 42.0, not 42: a later 42 patch can be newer than 43.0 and hold migrations 43.0 does not know.
+[versions."43.0"]
+from = "42.0"
+dhis2 = "dhis2/core:43.0@sha256:d9da23dfdded0fe6094201a135ddbee52b0da84812cb30f798d7ffddf720b0b5" # 2.43.0.1
+
+[versions."43"]
+from = "43.0"
+dhis2 = "dhis2/core:43@sha256:5a73b9de002b06ab1a4a61674325370107d79acbaec54e00594839837346fd23" # 2.43.2.1
+
+# The nightly's: unpinned, as it follows master.
+[versions.dev]
+from = "43"
+dhis2 = "dhis2/core-dev:latest"
+nightly = true

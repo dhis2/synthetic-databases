@@ -9,10 +9,11 @@ services:
     image: "${POSTGRES_IMAGE:?set by the pipeline from lock.toml}"
     mem_limit: ${DBGEN_DB_MEMORY:?set by the pipeline}
     cpus: ${DBGEN_DB_CPUS:?set by the pipeline}
-    # Index builds of the migrations take maintenance_work_mem of shared memory.
+    # Parallel queries take their shared memory from it.
     shm_size: 2gb
     # Nothing here needs to survive a crash, the result is dumped. As dbgen builds, but with
-    # autovacuum on, as an instance runs its migrations.
+    # autovacuum on, as an instance runs its migrations. Its memory fits mem_limit:
+    # shared_buffers, one maintenance_work_mem and 3 autovacuum workers' autovacuum_work_mem.
     command: >
       postgres
       -c wal_level=minimal
@@ -24,8 +25,9 @@ services:
       -c checkpoint_timeout=30min
       -c shared_buffers=1GB
       -c work_mem=32MB
-      -c maintenance_work_mem=1GB
-      -c max_parallel_maintenance_workers=2
+      -c maintenance_work_mem=512MB
+      -c autovacuum_work_mem=128MB
+      -c max_parallel_maintenance_workers=0
     # The superuser is dhis, as DHIS2 runs as the owner of the objects it migrates. The pipeline
     # creates the database dhis itself, from template0.
     environment:

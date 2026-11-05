@@ -10,8 +10,7 @@ databases from.
 [dbgen]: https://github.com/dhis2/synthetic-db-generator
 
 > [!WARNING]
-> Nothing is published yet. The repository runs locally until it lives in the dhis2 org with its
-> runner and S3 credentials (see [Set up](#set-up)).
+> Nothing is published yet.
 
 ## What it publishes
 
@@ -170,19 +169,6 @@ Then a release, a tag. `dev/check.sql` holds the 2.44 notes' queries; two read t
 2.43.3 removes, so drop them once 43 is 2.43.3 or later.
 
 [notes]: https://github.com/dhis2/dhis2-releases/tree/master/releases
-
-## Set up
-
-Before the first release:
-
-* Secrets `PERF_DATABASES_AWS_ACCESS_KEY_ID` and `PERF_DATABASES_AWS_SECRET_ACCESS_KEY`, allowed
-  `s3:PutObject` and `s3:AbortMultipartUpload` under `perfland-mnch/` only.
-* Core's `run-simulation.sh` allows `DB_TYPE=perfland-mnch`. Then the release's perf tests:
-  variable `CORE_PERF_TESTS=true` and secret `CORE_PERF_TESTS_TOKEN`, allowed to run workflows of
-  `dhis2/dhis2-core`.
-
-dbgen stays pinned by commit until both repositories are stable. Then it is tagged `v0.1.0`, and
-`[tool.uv.sources]` pins it by tag.
 
 ## Development
 

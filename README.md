@@ -89,52 +89,27 @@ superuser stays `admin` with `district`.
 synthetic-databases/
 ├── pyproject.toml, uv.lock    dbgen pinned by commit until it is tagged, and the pipeline's code
 ├── lock.toml                  the base, and the DHIS2 image of each version by digest
-├── databases/mnch/            the spec, metadata and packages.lock.toml, moved from dbgen
-│                              with their history, and publish.toml: the type and the areas
+├── databases/mnch/            the spec, metadata, packages.lock.toml, and publish.toml: the areas
 ├── upgrades/<version>/        check.sql, pre.sql, post.sql of the upgrade to the version
 ├── src/pipeline/              build, upgrade, check, fetch, publish
 └── .github/workflows/         ci.yml, release.yml, nightly.yml
 ```
 
-A release of the area of `publish.toml`:
+A release of the area of `publish.toml`, each step described in its module of `src/pipeline/`:
 
-1. **Build** at 42.0: `dbgen build databases/mnch/mnch.toml --orgunit QP1613`, which verifies
-   the build (schema checks, importer validation of a sample, tracker queries) and dumps it.
-2. **Upgrade** along the tree: 42.0 to 42, 42.0 to 43.0, 43.0 to 43. Each upgrade restores the
-   dump it upgrades from into an empty database (`createdb --template template0`, `gunzip |
-   psql`, as `dhis`) of the Postgres dbgen builds on, runs `check.sql`, failing on any row, then
-   `pre.sql`, starts the version's DHIS2 and waits until it answers `/api/ping`, so Flyway has
-   migrated, stops it, runs `post.sql`, records the rows Flyway added to `flyway_schema_history`
-   and dumps the database as dbgen does, `pg_dump` as plain SQL, gzipped.
-3. **Check** each dump, restored as a consumer restores it: DHIS2 of its version starts on it
-   without a migration, every Flyway row succeeded, the tracked entities, enrollments, events
-   (`trackerevent` and `singleevent` from 43 on), relationships and users number as in the
-   build, and a clerk's tracker queries answer 200 with records.
-4. **Publish** every version or none, from a tag with a clean tree.
+1. **Build** at 42.0 with `dbgen build`, which verifies and dumps it (`build.py`).
+2. **Upgrade** along the tree: restore, `check.sql`, `pre.sql`, the version's DHIS2 migrates,
+   `post.sql`, dump (`upgrade.py`).
+3. **Check** each dump as a consumer restores it: DHIS2 starts without a migration, the records
+   number as in the build, a clerk's tracker queries answer (`check.py`).
+4. **Publish** every version or none, from a tag with a clean tree (`publish.py`).
 
-`dev` is the nightly's: the published 43 upgraded to `dhis2/core-dev:latest`, checked and published
-as `dev`. A failure there is a migration of master failing or slow on realistic data: tell core.
-It upgrades only when the published `dev` is out of date: none is published, the pipeline is at
-another commit, the published 43 is another dump than `dev` was upgraded from, or a commit of
-master since the one `dev` was migrated by touched DHIS2's migrations (GitHub's API, on the
-revision label of `core-dev:latest`). Without new migrations, DHIS2 starts on the published `dev`
-as it is, so republishing it would only add an object version to the bucket and a rebuild on the
-perf runner.
+`dev` is the nightly's: the published 43 upgraded to `dhis2/core-dev:latest`, only when DHIS2
+master changed its migrations or something here changed (`nightly.py`). A failure is a migration
+of master failing or slow on realistic data: tell core.
 
-### Manifest
-
-`manifest.json` beside each dump extends dbgen's manifest of the build:
-
-* `type`, `version`, `dump`: its file, bytes and sha256, and `dhis2`, the labels of the image
-* `area`: the database, the org unit and dbgen's build
-* `pipeline`: the commit, clean tree and tag that made the dump; `dbgen`: its version and commit
-* `images`: the DHIS2 image by digest, and the Postgres the chain ran on
-* `chain`: each step from the build, with its DHIS2, its fix-ups' sha256, the migrations Flyway
-  ran with their times, and the seconds of its restore, start and dump
-* `checks`: what `pipeline check` found
-* `build`: dbgen's manifest
-
-The objects' metadata repeats the pipeline's tag, the DHIS2 version, the sha256 and the area.
+`manifest.json` beside each dump says what made it, from dbgen's build to the last upgrade
+(`manifest.py`).
 
 ## Run it
 
@@ -153,10 +128,8 @@ uv run pipeline release mnch          # build, upgrade and check 42.0, 42, 43.0 
 uv run pipeline publish mnch --dry-run
 ```
 
-`pipeline build`, `upgrade` and `check` run one step, such as `uv run pipeline upgrade mnch 43`
-once 43.0 is there. `pipeline nightly mnch` fetches the published 43 and upgrades it to dev;
-`--if-changed` only if the published `dev` is out of date, `--local` upgrades the 43 of `output/`
-instead. `pipeline <command> -h` tells more.
+`pipeline build`, `upgrade`, `check` and `nightly` run one step; `pipeline <command> -h` tells
+more.
 
 What it writes, none of it committed:
 
@@ -169,20 +142,14 @@ output/
 
 `output` may be a link to a larger disk.
 
-## Jobs
+## GitHub Actions workflows
 
-* **CI**, on `main` and pull requests: the pre-commit hooks and the tests, `dbgen explain` of the
-  spec, and a release of the ward along the tree to 43, checked at each version, on a standard
-  runner with the caps lowered. No upload.
-* **release**, on a tag: the release of QP1613 and the upload. Then, if set up, core's perf
-  tests' smoke profile on each version, dispatched to `dhis2/dhis2-core`, on the DHIS2 image each
-  version was checked with. Run from a branch, it is a dry run: no upload, no perf tests.
-* **nightly**: `dev`, when it is out of date.
+In `.github/workflows/`, each described in its header:
 
-The release and the nightly run on a standard runner with the caps lowered, as CI does. Whether
-QP1613 fits it is to be seen, by a dry run of the release; if not, an org owner adds a larger
-runner, such as `ubuntu-22.04-16c-64g-600gb`, in a runner group whose repository access is this
-repository, and the two workflows name it.
+* `ci.yml`, on `main` and pull requests: the checks, and a release of the ward without upload.
+* `release.yml`, on a `v*` tag: the release of QP1613, its upload, then core's perf tests. Run by
+  hand from a branch, a dry run.
+* `nightly.yml`, daily: `dev`, when it is out of date.
 
 ## Add a DHIS2 version or a fix-up
 
@@ -226,9 +193,9 @@ uv run ty check
 uv run pytest
 ```
 
-The tests need no Docker. `uv run pre-commit install` runs ruff and ty on every commit. CI runs
-the same hooks and the tests on `main` and on pull requests. Dependabot updates the actions and the
-uv dependencies weekly, but dbgen, which is bumped deliberately in a pull request.
+The tests need no Docker. `uv run pre-commit install` runs ruff and ty on every commit, as CI
+does. Dependabot updates the actions and the uv dependencies monthly, but not dbgen, which is
+bumped deliberately in a pull request.
 
 ### Release
 

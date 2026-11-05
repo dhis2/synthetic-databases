@@ -5,6 +5,8 @@
 # --dry-run, which shows what it would upload and why it would refuse. No upload, no perf tests.
 #
 # Needs, of the organization and this repository:
+# * variable PUBLISH set to true, once the secrets below are set: without it a tag runs the dry
+#   run, with a warning, and dispatches no perf tests
 # * secrets PERF_DATABASES_AWS_ACCESS_KEY_ID and PERF_DATABASES_AWS_SECRET_ACCESS_KEY, allowed
 #   s3:PutObject under s3://databases.dhis2.org/perfland-mnch/
 # * for the perf tests: variable CORE_PERF_TESTS set to true, secret CORE_PERF_TESTS_TOKEN allowed
@@ -55,6 +57,17 @@ jobs:
         with:
           # Exact, so CI changes only by a commit; within pyproject.toml's required-version.
           version: "0.13.7"
+      - name: Record the disk use each minute
+        # In the background until the job ends, uploaded with DHIS2's logs: the peak of the build,
+        # the upgrades and the checks, against the runner's disk.
+        run: |
+          mkdir --parents output/logs
+          nohup bash -c 'while true; do
+            date --utc +%FT%TZ
+            df --block-size=M --output=used,avail /
+            docker system df
+            sleep 60
+          done' > output/logs/disk.log 2>&1 &
       - run: uv sync --locked
       - name: Build, upgrade and check 42.0, 42, 43.0 and 43
         run: uv run pipeline release mnch
@@ -68,10 +81,14 @@ jobs:
             output/logs/
           if-no-files-found: ignore
       - name: Show what a release would publish
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        run: uv run pipeline publish mnch --dry-run
+        if: ${{ !startsWith(github.ref, 'refs/tags/') || vars.PUBLISH != 'true' }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "::warning::variable PUBLISH is not true: a dry run, nothing published"
+          fi
+          uv run pipeline publish mnch --dry-run
       - name: Publish
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') && vars.PUBLISH == 'true'
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.PERF_DATABASES_AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.PERF_DATABASES_AWS_SECRET_ACCESS_KEY }}
@@ -98,7 +115,9 @@ jobs:
   # smoke run per version, as a consumer restores the published dump.
   perf-tests:
     needs: release
-    if: startsWith(github.ref, 'refs/tags/') && vars.CORE_PERF_TESTS == 'true'
+    if: >-
+      startsWith(github.ref, 'refs/tags/') && vars.PUBLISH == 'true'
+      && vars.CORE_PERF_TESTS == 'true'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false

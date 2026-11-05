@@ -5,7 +5,8 @@
 # another pipeline commit, another published 43, or new migrations on DHIS2 master. Otherwise it
 # stops after that comparison, and publishes nothing.
 #
-# Needs the S3 secrets of release.yml.
+# Needs the S3 secrets of release.yml, and variable PUBLISH set to true: without it the job is
+# skipped, as there is no published 43 to start from.
 name: Nightly
 
 on:
@@ -22,6 +23,7 @@ concurrency:
 
 jobs:
   nightly:
+    if: vars.PUBLISH == 'true'
     # A standard runner of a public repository: 4 CPUs, 16 GB, 14 GB of disk, with the caps of
     # ci.yml's release-test, which also cap the pipeline's stack. It builds nothing with dbgen,
     # only restores, upgrades and dumps the release area; if that does not fit, a larger runner.

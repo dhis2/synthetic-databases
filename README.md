@@ -147,8 +147,10 @@ In `.github/workflows/`, each described in its header:
 
 * `ci.yml`, on `main` and pull requests: the checks, and a release of the ward without upload.
 * `release.yml`, on a `v*` tag: the release of QP1613, its upload, then core's perf tests. Run by
-  hand from a branch, a dry run.
-* `nightly.yml`, daily: `dev`, when it is out of date.
+  hand from a branch, or while the variable `PUBLISH` is not `true`, a dry run.
+* `nightly.yml`, daily once the variable `PUBLISH` is `true`: `dev`, when it is out of date.
+
+The variable `PUBLISH` waits for the bucket's credentials: set it to `true` once the secrets are.
 
 ## Add a DHIS2 version or a fix-up
 

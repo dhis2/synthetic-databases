@@ -25,7 +25,7 @@ from pipeline.upgrade import flyway_rows
 
 # dbgen's tables whose rows a dump keeps through every upgrade, and the users.
 COUNTED = ("trackedentity", "enrollment", "event", "relationship", "users")
-QUERY_TIMEOUT = 300
+QUERY_TIMEOUT_SECONDS = 300
 
 
 def run(database: Database, name: str, timeout: int) -> dict:
@@ -177,7 +177,7 @@ def clerk_queries(program: dict, username: str, password: str) -> list[dict]:
     ]
     out = []
     with httpx.Client(
-        base_url=stack.BASE_URL, auth=(username, password), timeout=QUERY_TIMEOUT
+        base_url=stack.BASE_URL, auth=(username, password), timeout=QUERY_TIMEOUT_SECONDS
     ) as http:
         for name, path, params in queries:
             start = time.perf_counter()

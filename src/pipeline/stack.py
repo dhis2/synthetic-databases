@@ -60,15 +60,21 @@ def reset() -> None:
 
 @contextmanager
 def database(dump: Path) -> Generator[float]:
-    """A fresh database holding the dump, for the block; removed after it. Yields the seconds
-    the restore took."""
+    """A fresh database holding the dump, analyzed, for the block; removed after it. Yields the
+    seconds the restore took.
+
+    A restore leaves the tables without statistics until autovacuum gets to them, so DHIS2's
+    migrations and a check's queries would be planned on guesses, as fast or slow as autovacuum
+    happens to be. The statistics are not part of a dump."""
     reset()
     try:
         compose("up", "--detach", "--wait", "db")
         start = time.perf_counter()
         exec_db("createdb", "--username=dhis", "--owner=dhis", "--template=template0", "dhis")
         restore(dump)
-        yield round(time.perf_counter() - start, 1)
+        seconds = round(time.perf_counter() - start, 1)
+        analyze()
+        yield seconds
     finally:
         reset()
 
@@ -96,6 +102,12 @@ def restore(dump: Path) -> None:
             stdin.close()
     if psql.returncode != 0:
         raise CheckFailed(f"psql failed to restore {dump}, its error is above")
+
+
+def analyze() -> None:
+    start = time.perf_counter()
+    exec_db(*PSQL, "--dbname=dhis", "--command=analyze")
+    print(f"analyze: {round(time.perf_counter() - start, 1)} s", file=sys.stderr)
 
 
 def connect(**kwargs) -> psycopg.Connection:

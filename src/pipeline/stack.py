@@ -59,9 +59,9 @@ def reset() -> None:
 
 
 @contextmanager
-def database(dump: Path) -> Generator[float]:
-    """A fresh database holding the dump, for the block; removed after it. Yields the seconds
-    the restore took.
+def database(dump: Path, log: Path) -> Generator[float]:
+    """A fresh database holding the dump, for the block; removed after it, its Postgres log saved
+    to `log`. Yields the seconds the restore took.
 
     Vacuumed and analyzed, as core's harness does before it measures: a dump has no statistics,
     so otherwise queries depend on when autovacuum runs."""
@@ -75,6 +75,11 @@ def database(dump: Path) -> Generator[float]:
         vacuum_analyze()
         yield seconds
     finally:
+        try:
+            log.parent.mkdir(parents=True, exist_ok=True)
+            log.write_text(compose("logs", "--no-color", "db", capture=True))
+        except CheckFailed as e:
+            print(f"warning: Postgres's log not saved: {e}", file=sys.stderr)
         reset()
 
 

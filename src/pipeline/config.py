@@ -11,7 +11,7 @@ output/                         what it writes (gitignored):
 ├── stage/, <build>/            dbgen's build (see dbgen)
 ├── publish/<type>/<version>/   the dump and manifest.json of a version, as uploaded to
 │                               s3://databases.dhis2.org/<type>/<version>/
-└── logs/<type>/<version>/      DHIS2's logs of its upgrade and check
+└── logs/<type>/<version>/      DHIS2's and Postgres's logs of its upgrade and check
 """
 
 import re
@@ -96,7 +96,7 @@ class Database:
         return self.dir(version) / "manifest.json"
 
     def logs(self, version: str) -> Path:
-        """DHIS2's logs of an upgrade or a check, which are not published."""
+        """DHIS2's and Postgres's logs of an upgrade or a check, which are not published."""
         return OUTPUT / "logs" / self.type / version
 
     @property

@@ -45,7 +45,7 @@ def run(database: Database, name: str, timeout: int) -> dict:
     print(
         f"upgrade: {version.source} to {name}, DHIS2 {labels.get('DHIS2_VERSION')}", file=sys.stderr
     )
-    with stack.database(source_dump) as restore_seconds:
+    with stack.database(source_dump, log.with_name("upgrade-db.log")) as restore_seconds:
         with stack.connect(autocommit=True) as pg:
             before = last_rank(pg)
             run_checks(pg, fixups["check.sql"])

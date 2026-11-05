@@ -40,7 +40,7 @@ def run(database: Database, name: str, timeout: int) -> dict:
     problems = []
 
     print(f"check: {name}, {image}", file=sys.stderr)
-    with stack.database(dump) as restore_seconds:
+    with stack.database(dump, log.with_name("check-db.log")) as restore_seconds:
         with stack.connect(autocommit=True) as pg:
             restored = flyway_rows(pg)
         start_seconds = stack.start_dhis2(image, timeout, log)

@@ -35,8 +35,8 @@ jobs:
         run: uv run dbgen explain databases/mnch/mnch.toml > /dev/null
 
   release-test:
-    # A standard runner of a public repository: 4 CPUs, 16 GB, 14 GB of disk. The caps fit the
-    # build stack and the pipeline's into it, and dbgen leaves 3 GiB beside them.
+    # A standard runner of a public repository: 4 CPUs and 16 GB. The caps fit the build stack
+    # and the pipeline's into it, and dbgen leaves 3 GiB beside them.
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
@@ -45,11 +45,8 @@ jobs:
       DBGEN_WEB_HEAP: 2500m
       DBGEN_HEADROOM: 3g
     steps:
-      - name: Free disk space
-        # dbgen needs 10 GiB free where Docker keeps its data, the runner has 14 GB.
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-          df --human-readable /
+      - name: Show the free disk
+        run: df --human-readable /
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false

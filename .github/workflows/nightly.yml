@@ -24,9 +24,9 @@ concurrency:
 jobs:
   nightly:
     if: vars.PUBLISH == 'true'
-    # A standard runner of a public repository: 4 CPUs, 16 GB, 14 GB of disk, with the caps of
-    # ci.yml's release-test, which also cap the pipeline's stack. It builds nothing with dbgen,
-    # only restores, upgrades and dumps the release area; if that does not fit, a larger runner.
+    # A standard runner of a public repository: 4 CPUs and 16 GB, with the caps of ci.yml's
+    # release-test, which also cap the pipeline's stack. It builds nothing with dbgen, only
+    # restores, upgrades and dumps the release area.
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     env:
@@ -35,11 +35,8 @@ jobs:
       DBGEN_WEB_HEAP: 2500m
       DBGEN_HEADROOM: 3g
     steps:
-      - name: Free disk space
-        # The restored release area and its dumps, beside Docker's images; the runner has 14 GB.
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-          df --human-readable /
+      - name: Show the free disk
+        run: df --human-readable /
       # Actions pinned by commit, which Dependabot updates (.github/dependabot.yml).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

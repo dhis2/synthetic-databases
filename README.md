@@ -115,7 +115,8 @@ of master failing or slow on realistic data: tell core.
 ### Requirements
 
 dbgen's (see its README): Linux, [uv](https://docs.astral.sh/uv/) and Docker, 17 GiB of free
-memory, and for QP1613 about 10 GiB of disk where Docker keeps its data and 3 GiB for `output/`.
+memory. A release of QP1613 takes about 20 GB of disk for Docker's data and `output/` together;
+the release workflow's `disk.log` shows it.
 The same `DBGEN_` variables cap dbgen's build stack and the pipeline's.
 
 ### Commands

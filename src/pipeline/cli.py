@@ -19,8 +19,9 @@ examples:
   pipeline check mnch 43.0
 """
 
-# Seconds DHIS2 may take to start, with its migrations.
-TIMEOUT = 7200
+# Seconds DHIS2 may take to start, with its migrations: a hung start fails here, with DHIS2's
+# log saved, well before the job's own limit.
+TIMEOUT = 1800
 
 
 def main(argv: list[str] | None = None) -> None:

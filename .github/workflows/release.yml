@@ -1,4 +1,4 @@
-# A release, on a tag: build the release area at 42.0, upgrade it along the tree, check every
+# A release, on a tag: build the release area at 42.0, upgrade it to each version, check every
 # version and publish them all, or none. Then run core's perf tests on each from the bucket.
 #
 # Dispatched from a branch, it is a dry run: the same build, upgrades and checks, then publish

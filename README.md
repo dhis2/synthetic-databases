@@ -100,15 +100,15 @@ pull request and a release: a patch or major can come with migration notes that 
 fix-ups, reviewed before its dump is published.
 
 Until the variable `PUBLISH` is `true`, which waits for the bucket's credentials, a tag runs a
-dry run and the nightly is off. `ci.yml`, on pull requests and `main`, builds the ward and
-upgrades and checks it along the same versions, without upload.
+dry run and the nightly is off. `ci.yml`, on pull requests and `main`, releases the ward without
+upload.
 
 Release when what is published should change: a new DHIS2 patch or major (below), a dbgen bump,
 or a change of the spec, the area or an upgrade.
 
 ### Add a DHIS2 patch or major
 
-In a pull request, which CI runs along the tree with the new image:
+In a pull request, where CI tests the new image on the ward:
 
 1. Its image by digest in `lock.toml`. A patch replaces the image of its major's latest, such as
    `43`. A major adds its first release and its latest, such as `44.0` and `44`, and `dev` then
@@ -157,8 +157,8 @@ synthetic-databases/
 A release of the area of `publish.toml`, each step described in its module of `src/pipeline/`:
 
 1. **Build** at 42.0 with `dbgen build`, which verifies and dumps it (`build.py`).
-2. **Upgrade** along the tree: restore, `check.sql`, `pre.sql`, the version's DHIS2 migrates,
-   `post.sql`, dump (`upgrade.py`).
+2. **Upgrade** each version from its `from` in `lock.toml`: restore, `check.sql`, `pre.sql`,
+   the version's DHIS2 migrates, `post.sql`, dump (`upgrade.py`).
 3. **Check** each dump as a consumer restores it: DHIS2 starts without a migration, the records
    number as in the build, a clerk's tracker queries answer (`check.py`).
 4. **Publish** every version or none, from a tag with a clean tree (`publish.py`).

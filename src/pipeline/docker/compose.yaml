@@ -9,6 +9,9 @@ services:
     image: "${POSTGRES_IMAGE:?set by the pipeline from lock.toml}"
     mem_limit: ${DBGEN_DB_MEMORY:?set by the pipeline}
     cpus: ${DBGEN_DB_CPUS:?set by the pipeline}
+    # An init as PID 1, not Postgres: the init reaps a healthcheck's pg_isready orphaned by its
+    # timeout, which otherwise Postgres reaps, and takes its exit code 2 for a crashed backend.
+    init: true
     # Parallel queries take their shared memory from it.
     shm_size: 2gb
     # Nothing here needs to survive a crash, the result is dumped. As dbgen builds, but with

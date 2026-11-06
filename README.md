@@ -26,6 +26,10 @@ named after the DHIS2 image tag it is for:
 | `perfland-mnch/43/dhis2-db-perfland-mnch.sql.gz` | `dhis2/core:43`, 2.43.2.1 | upgrade of 43.0 |
 | `perfland-mnch/dev/dhis2-db-perfland-mnch.sql.gz` | `dhis2/core-dev:latest` | nightly upgrade of 43 |
 
+Each dump is of the image `lock.toml` pins by digest, not of whatever the tag points to today:
+`42` and `43` move to a new patch with a release here (see [Release](#release)), `dev` with the
+nightly.
+
 The upgrades only go forward, from dbgen's build at 42.0:
 
 ```
@@ -63,9 +67,9 @@ DHIS2_IMAGE=dhis2/core:43@sha256:5a73b9de002b06ab1a4a61674325370107d79acbaec54e0
 
 `run-simulation.sh` does not take `perfland-mnch` yet: it allows `sierra-leone` and `hmis` only.
 
-The harness caches its Postgres image by tag, and a release overwrites `42`, `43.0`, `43` and
-`dev` in place, so remove the cached image to take a new dump, as with Sierra Leone. The bucket
-keeps versions, so an overwrite that broke something can be rolled back.
+A release overwrites each version's dump in place, and the nightly `dev`'s. The harness rebuilds its
+database image when the dump's ETag in S3 changes, and records it in `run-simulation.env`. The
+bucket keeps versions, so an overwrite that broke something can be rolled back.
 
 ### The area
 
@@ -130,8 +134,8 @@ The same `DBGEN_` variables cap dbgen's build stack and the pipeline's.
 
 ```sh
 uv sync
-uv run pipeline release mnch --test   # CI's: the ward along the tree
-uv run pipeline release mnch          # build, upgrade and check 42.0, 42, 43.0 and 43
+uv run pipeline release mnch --test   # as CI: the small ward, built, upgraded and checked
+uv run pipeline release mnch          # as a release: the district, without the upload
 uv run pipeline publish mnch --dry-run
 ```
 
@@ -144,7 +148,7 @@ What it writes, none of it committed:
 output/
 ├── stage/, mnch-<area>/               dbgen's build
 ├── publish/perfland-mnch/<version>/   the dump and manifest.json, as uploaded
-└── logs/perfland-mnch/<version>/      DHIS2's logs of the upgrade and the check
+└── logs/perfland-mnch/<version>/      DHIS2's and Postgres's logs of the upgrade and check
 ```
 
 `output` may be a link to a larger disk.
@@ -162,7 +166,7 @@ The variable `PUBLISH` waits for the bucket's credentials: set it to `true` once
 
 ## Add a DHIS2 version or a fix-up
 
-A new DHIS2 patch or major arrives in a pull request:
+Nothing watches Docker Hub for a new DHIS2 patch or major: add it by hand, in a pull request.
 
 1. Its image by digest in `lock.toml`, with the version it upgrades from. A major's first release
    upgrades from the previous major's first release, as 43.0 from 42.0; a major's latest from its
@@ -175,7 +179,7 @@ A new DHIS2 patch or major arrives in a pull request:
    is valid in one version and must change for the next; what is wrong for every version is fixed
    in dbgen, the spec or the metadata.
 
-Then a release, a tag. `dev/check.sql` holds the 2.44 notes' queries; two read the note tables
+Once merged, tag a release. `dev/check.sql` holds the 2.44 notes' queries; two read the note tables
 2.43.3 removes, so drop them once 43 is 2.43.3 or later.
 
 [notes]: https://github.com/dhis2/dhis2-releases/tree/master/releases
@@ -195,8 +199,14 @@ bumped deliberately in a pull request.
 
 ### Release
 
-A release is a tag `vX.Y.Z` on `main`, pushed to GitHub: `release.yml` builds, upgrades, checks and
-publishes every version from it.
+A tag `vX.Y.Z` on `main` is a release: `release.yml` builds, upgrades and checks every version
+but `dev` and uploads them, overwriting each version's dump. Tag when what is published should
+change: a DHIS2 image in `lock.toml`, a dbgen bump, the spec or an upgrade. `publish` refuses
+without a tag at HEAD and a clean tree, and each manifest and S3 object records the tag, so a dump
+leads back to the code that made it. A failure of the runner is re-run on the same tag; a fix needs
+a new one.
+
+`dev` needs no tag: the nightly publishes it from `main`.
 
 ## Licence
 

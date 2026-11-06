@@ -4,17 +4,23 @@ Every version or none: it uploads only once each version's dump matches its mani
 its check, holds the release area and was made by this commit of the pipeline, from a clean
 tree. A release's versions are made from a tag; the nightly's from any commit.
 
-Each object carries in its metadata the pipeline's tag or commit, the DHIS2 version and the
-sha256, as Sierra Leone's dumps carry who uploaded them. Writes take credentials allowed
-s3:PutObject under the type's folder, from the environment, as the aws CLI takes them.
+Each dump carries in its metadata what a HEAD request on it tells without downloading it
+(metadata()); its manifest.json beside it carries none, as it holds all of it. Writes take
+credentials allowed s3:PutObject under the type's folder, from the environment, as the aws CLI
+takes them.
 """
 
+import json
+import os
 import subprocess
 import sys
+from collections.abc import Mapping
 
 from pipeline import manifest, provenance
 from pipeline.config import BUCKET, Database, lock
 from pipeline.errors import CheckFailed, UsageError
+
+REPOSITORY = "dhis2/synthetic-databases"
 
 
 def run(database: Database, names: list[str], dry_run: bool, bucket: str = BUCKET) -> None:
@@ -61,19 +67,11 @@ def run(database: Database, names: list[str], dry_run: bool, bucket: str = BUCKE
 
     label = state["tag"] or state["commit"] or "unknown"
     for name, record in records.items():
-        metadata = ",".join(
-            [
-                f"pipeline={label}",
-                f"dhis2_version={record['dhis2'].get('DHIS2_VERSION', name)}",
-                f"sha256={record['dump']['sha256']}",
-                f"orgunit={record['area']['orgunit']}",
-            ]
-        )
         uploads = [
-            (database.dump(name), database.dump_name, "application/gzip"),
-            (database.manifest(name), "manifest.json", "application/json"),
+            (database.dump(name), database.dump_name, "application/gzip", metadata(record, label)),
+            (database.manifest(name), "manifest.json", "application/json", {}),
         ]
-        for path, file, content_type in uploads:
+        for path, file, content_type, fields in uploads:
             command = [
                 "aws",
                 "s3",
@@ -82,8 +80,7 @@ def run(database: Database, names: list[str], dry_run: bool, bucket: str = BUCKE
                 f"s3://{bucket}/{database.key(name, file)}",
                 "--content-type",
                 content_type,
-                "--metadata",
-                metadata,
+                *(["--metadata", json.dumps(fields)] if fields else []),
                 "--only-show-errors",
             ]
             print(f"publish: {' '.join(command)}", file=sys.stderr)
@@ -97,3 +94,34 @@ def run(database: Database, names: list[str], dry_run: bool, bucket: str = BUCKE
                 raise CheckFailed(f"uploading {path} failed, its error is above")
     if not dry_run:
         print(f"publish: {', '.join(records)} to s3://{bucket}/{database.type}/", file=sys.stderr)
+
+
+def metadata(record: dict, label: str, env: Mapping[str, str] = os.environ) -> dict[str, str]:
+    """The S3 metadata of a version's dump, from its manifest: who saved it and in which run, the
+    DHIS2 and Flyway schema it is at, its sha256, area and Postgres. saved_by is Sierra Leone's
+    dumps' name; dhis2_version and dhis2_revision are DHIS2's /api/system/info's. A field without
+    a value is left out."""
+    fields = {
+        "saved_by": f"{REPOSITORY}@{label}",
+        "run_url": run_url(env),
+        "dhis2_version": record["dhis2"].get("DHIS2_VERSION"),
+        "dhis2_revision": record["dhis2"].get("DHIS2_BUILD_REVISION"),
+        "flyway_schema_version": record["chain"][-1].get("flyway_version"),
+        "sha256": record["dump"]["sha256"],
+        "orgunit_code": record["area"]["orgunit"],
+        "postgres_image": record["images"]["postgres"],
+    }
+    return {k: v for k, v in fields.items() if v}
+
+
+def run_url(env: Mapping[str, str]) -> str | None:
+    """The attempt of the GitHub Actions run that publishes, None outside of one. A nightly
+    publishes dev from the same commit night after night: the run tells them apart, and links to
+    its logs and manifests."""
+    run = env.get("GITHUB_RUN_ID")
+    if not run:
+        return None
+    server = env.get("GITHUB_SERVER_URL", "https://github.com")
+    repository = env.get("GITHUB_REPOSITORY", REPOSITORY)
+    attempt = env.get("GITHUB_RUN_ATTEMPT", "1")
+    return f"{server}/{repository}/actions/runs/{run}/attempts/{attempt}"

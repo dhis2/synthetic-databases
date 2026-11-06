@@ -11,7 +11,7 @@
 * checks: the results of `pipeline check`, null until it ran
 * build: dbgen's manifest, as `dbgen build` wrote it
 
-The bucket's object metadata repeats the tag, the DHIS2 version and the sha256 (publish.py).
+Each dump's object metadata in the bucket repeats some of it (publish.metadata).
 """
 
 import json

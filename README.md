@@ -70,14 +70,21 @@ keeps versions, so an overwrite that broke something can be rolled back.
 ### The area
 
 `databases/mnch/publish.toml` names the area of a release, district QP1613, and CI's, ward
-QP0602-02:
+QP0602-02. Times are of a standard GitHub runner, 4 CPUs and 16 GB, on 2026-11-05:
 
 | | district QP1613 | ward QP0602-02 |
 |---|---|---|
 | tracked entities | 154,557 | 7,043 |
 | enrollments | 167,528 | 7,653 |
 | events | 2.2 million | 98,243 |
-| dump | 506 MiB | 21 MiB |
+| relationships | 69,548 | 3,186 |
+| users | 149 | 12 |
+| dump of each version | 506 to 509 MiB | 21 MiB |
+| dbgen build | 13 min | 4 min |
+| release: build, upgrades and checks | 47 min | 12 min |
+| DHIS2's start migrating to 43.0 | 152 s | 49 s |
+
+43.0's migrations grow with the data: on QP1613 2.43.21 takes 59 s and 2.43.22 35 s.
 
 The users are made for performance testing only: their password is `Perf-Test-2026!`, and the
 superuser stays `admin` with `district`.

@@ -12,44 +12,34 @@ databases from.
 > [!WARNING]
 > Nothing is published yet.
 
-## What it publishes
+## Perf Land MNCH
 
-The Perf Land MNCH database: Perf Land is a made-up country, MNCH its programs, the WHO/DHIS2
-Antenatal Care (ANC) and Electronic Immunization Registry (EIR) tracker packages. Each dump is
-named after the DHIS2 image tag it is for:
+Perf Land is a made-up country, MNCH its programs: the WHO/DHIS2 Antenatal Care (ANC) and
+Electronic Immunization Registry (EIR) tracker packages. One dump per DHIS2 image tag:
 
-| S3 path | DHIS2 image | made by |
-|---|---|---|
-| `perfland-mnch/42.0/dhis2-db-perfland-mnch.sql.gz` | `dhis2/core:42.0`, 2.42.0 | `dbgen build` |
-| `perfland-mnch/42/dhis2-db-perfland-mnch.sql.gz` | `dhis2/core:42`, 2.42.7.1 | upgrade of 42.0 |
-| `perfland-mnch/43.0/dhis2-db-perfland-mnch.sql.gz` | `dhis2/core:43.0`, 2.43.0.1 | upgrade of 42.0 |
-| `perfland-mnch/43/dhis2-db-perfland-mnch.sql.gz` | `dhis2/core:43`, 2.43.2.1 | upgrade of 43.0 |
-| `perfland-mnch/dev/dhis2-db-perfland-mnch.sql.gz` | `dhis2/core-dev:latest` | nightly upgrade of 43 |
+| version | DHIS2 image, as `lock.toml` pins it | upgraded from | published by |
+|---|---|---|---|
+| `42.0` | `dhis2/core:42.0`, 2.42.0 | none, dbgen builds it | a [release](#publish) |
+| `42` | `dhis2/core:42`, 2.42.7.1 | `42.0` | a release |
+| `43.0` | `dhis2/core:43.0`, 2.43.0.1 | `42.0` | a release |
+| `43` | `dhis2/core:43`, 2.43.2.1 | `43.0` | a release |
+| `dev` | `dhis2/core-dev:latest`, unpinned | `43` | the [nightly](#publish), when out of date |
 
-Each dump is of the image `lock.toml` pins by digest, not of whatever the tag points to today:
-`42` and `43` move to a new patch with a release here (see [Release](#release)), `dev` with the
-nightly.
-
-The upgrades only go forward, from dbgen's build at 42.0:
-
-```
-42.0 ─┬─▶ 42
-      └─▶ 43.0 ─▶ 43 ─▶ dev
-```
-
-43.0 comes from 42.0, not from 42: a later 42 patch can be newer than 43.0, so it may hold
-migrations 43.0 does not know. 42.0 to 43.0 is the upgrade that existed when 43.0 shipped.
-
-Every dump holds the same records with the same UIDs, names and users, so a perf test's parameters
-fit every version, and two versions compared measure DHIS2, not two datasets. Run the dump of the
-version you run: the harness starts every run from the restored dump, and a dump of another
-version would migrate on every run and be measured fresh out of a migration.
-
-Beside each dump, `manifest.json` says what made it (see [Manifest](#manifest)). Reads are public:
+`s3://databases.dhis2.org/perfland-mnch/<version>/` holds the dump,
+`dhis2-db-perfland-mnch.sql.gz`, and `manifest.json`, what made it. Reads are public:
 
 ```sh
 aws s3 cp --no-sign-request s3://databases.dhis2.org/perfland-mnch/43/manifest.json .
 ```
+
+Every dump holds the same records, with the same UIDs, names and users: a perf test's parameters
+fit every version, and two versions compared measure DHIS2, not two datasets.
+
+Run the dump of the DHIS2 you run: on any other, DHIS2 migrates it at the start of every run, and
+is measured fresh out of a migration. That includes a newer patch than the pinned one: `42` and
+`43` are the patches `lock.toml` pins, not what Docker Hub's tags point to today, and nothing
+detects a new patch. Until a release moves the pin, the tag runs ahead of the dump, as master runs
+ahead of Sierra Leone's `dev` dump.
 
 ### Run a perf test on it
 
@@ -67,9 +57,9 @@ DHIS2_IMAGE=dhis2/core:43@sha256:5a73b9de002b06ab1a4a61674325370107d79acbaec54e0
 
 `run-simulation.sh` does not take `perfland-mnch` yet: it allows `sierra-leone` and `hmis` only.
 
-A release overwrites each version's dump in place, and the nightly `dev`'s. The harness rebuilds its
-database image when the dump's ETag in S3 changes, and records it in `run-simulation.env`. The
-bucket keeps versions, so an overwrite that broke something can be rolled back.
+Publishing overwrites a dump in place. The harness rebuilds its database image when the dump's
+ETag in S3 changes, and records it in `run-simulation.env`. The bucket keeps versions, so an
+overwrite that broke something can be rolled back.
 
 ### The area
 
@@ -93,6 +83,65 @@ QP0602-02. Times are of a standard GitHub runner, 4 CPUs and 16 GB, on 2026-11-0
 The users are made for performance testing only: their password is `Perf-Test-2026!`, and the
 superuser stays `admin` with `district`.
 
+## Publish
+
+Two workflows publish, from `main`:
+
+* **A release**, `release.yml` on a tag `vX.Y.Z`: builds the district, upgrades and checks every
+  version but `dev`, and uploads them all or none. Then, with the variable `CORE_PERF_TESTS`, it
+  runs core's perf tests on them.
+* **The nightly**, `nightly.yml` daily: upgrades the published `43` to `dhis2/core-dev:latest` and
+  uploads it as `dev`, only when `dev` is out of date: DHIS2 master changed its migrations, `43`
+  was released again, or `main` moved. A failure is a migration of master failing or slow on
+  realistic data: tell core.
+
+`dev` follows master by itself, as core's nightly perf tests do. `42` and `43` move only with a
+pull request and a release: a patch or major can come with migration notes that ask for checks or
+fix-ups, reviewed before its dump is published.
+
+Until the variable `PUBLISH` is `true`, which waits for the bucket's credentials, a tag runs a
+dry run and the nightly is off. `ci.yml`, on pull requests and `main`, builds the ward and
+upgrades and checks it along the same versions, without upload.
+
+Release when what is published should change: a new DHIS2 patch or major (below), a dbgen bump,
+or a change of the spec, the area or an upgrade.
+
+### Add a DHIS2 patch or major
+
+In a pull request, which CI runs along the tree with the new image:
+
+1. Its image by digest in `lock.toml`. A patch replaces the image of its major's latest, such as
+   `43`. A major adds its first release and its latest, such as `44.0` and `44`, and `dev` then
+   upgrades from `44`. A major's first release upgrades from the previous major's first, as 43.0
+   from 42.0, never from a later patch, which can hold migrations it does not know; a major's
+   latest upgrades from its first.
+2. `upgrades/<version>/` with the queries of its [migration notes][notes] in `check.sql`, each led
+   by a comment naming its note, each must return no rows.
+3. The fix-ups those ask for: `pre.sql` runs before the version's DHIS2 starts, `post.sql` after
+   Flyway migrated, each in one transaction. Each change says why and which note it answers. Expect
+   few: the notes' fixes are mostly for data dbgen never writes. A fix-up only changes data that
+   is valid in one version and must change for the next; what is wrong for every version is fixed
+   in dbgen, the spec or the metadata.
+
+Then merge, and release. `dev/check.sql` holds the 2.44 notes' queries; two read the note tables
+2.43.3 removes, so drop them once 43 is 2.43.3 or later.
+
+[notes]: https://github.com/dhis2/dhis2-releases/tree/master/releases
+
+### Release
+
+Optionally, a dry run first: run `release.yml` by hand on `main` (Actions, Release, Run workflow).
+It builds, upgrades and checks the district, and shows what it would upload. Then tag `main`:
+
+```sh
+git tag --sign --message v0.2.0 v0.2.0 main
+git push origin v0.2.0
+```
+
+`publish` refuses without a tag at HEAD and a clean tree, and each `manifest.json` and S3 object
+records the tag, so a dump leads back to the code that made it. A failure of the runner is re-run
+on the same tag; a fix needs a new tag.
+
 ## How it works
 
 ```
@@ -101,8 +150,8 @@ synthetic-databases/
 ├── lock.toml                  the base, and the DHIS2 image of each version by digest
 ├── databases/mnch/            the spec, metadata, packages.lock.toml, and publish.toml: the areas
 ├── upgrades/<version>/        check.sql, pre.sql, post.sql of the upgrade to the version
-├── src/pipeline/              build, upgrade, check, fetch, publish
-└── .github/workflows/         ci.yml, release.yml, nightly.yml
+├── src/pipeline/              build, upgrade, check, fetch, publish, nightly
+└── .github/workflows/         ci.yml, release.yml, nightly.yml, each described in its header
 ```
 
 A release of the area of `publish.toml`, each step described in its module of `src/pipeline/`:
@@ -114,35 +163,26 @@ A release of the area of `publish.toml`, each step described in its module of `s
    number as in the build, a clerk's tracker queries answer (`check.py`).
 4. **Publish** every version or none, from a tag with a clean tree (`publish.py`).
 
-`dev` is the nightly's: the published 43 upgraded to `dhis2/core-dev:latest`, only when DHIS2
-master changed its migrations or something here changed (`nightly.py`). A failure is a migration
-of master failing or slow on realistic data: tell core.
+The nightly runs steps 2 to 4 for `dev` (`nightly.py`). `manifest.json` beside each dump says
+what made it, from dbgen's build to the last upgrade (`manifest.py`).
 
-`manifest.json` beside each dump says what made it, from dbgen's build to the last upgrade
-(`manifest.py`).
+## Develop
 
-## Run it
-
-### Requirements
-
-dbgen's (see its README): Linux, [uv](https://docs.astral.sh/uv/) and Docker, 17 GiB of free
-memory. A release of QP1613 takes about 20 GB of disk for Docker's data and `output/` together;
-the release workflow's `disk.log` shows it.
-The same `DBGEN_` variables cap dbgen's build stack and the pipeline's.
-
-### Commands
+dbgen's requirements (see its README): Linux, [uv](https://docs.astral.sh/uv/) and Docker, 17 GiB
+of free memory. A release of the district takes about 20 GB of disk for Docker's data and
+`output/` together. The same `DBGEN_` variables cap dbgen's build stack and the pipeline's.
 
 ```sh
 uv sync
-uv run pipeline release mnch --test   # as CI: the small ward, built, upgraded and checked
+uv run pre-commit install             # ruff and ty on each commit, as CI
+uv run pytest                         # needs no Docker
+uv run pipeline release mnch --test   # as CI: the ward, built, upgraded and checked
 uv run pipeline release mnch          # as a release: the district, without the upload
 uv run pipeline publish mnch --dry-run
 ```
 
-`pipeline build`, `upgrade`, `check` and `nightly` run one step; `pipeline <command> -h` tells
-more.
-
-What it writes, none of it committed:
+`pipeline build`, `upgrade`, `check` and `nightly` run one step, on what an earlier one left in
+`output/`; `pipeline <command> -h` tells more. What it writes, none of it committed:
 
 ```
 output/
@@ -151,62 +191,8 @@ output/
 └── logs/perfland-mnch/<version>/      DHIS2's and Postgres's logs of the upgrade and check
 ```
 
-`output` may be a link to a larger disk.
-
-## GitHub Actions workflows
-
-In `.github/workflows/`, each described in its header:
-
-* `ci.yml`, on `main` and pull requests: the checks, and a release of the ward without upload.
-* `release.yml`, on a `v*` tag: the release of QP1613, its upload, then core's perf tests. Run by
-  hand from a branch, or while the variable `PUBLISH` is not `true`, a dry run.
-* `nightly.yml`, daily once the variable `PUBLISH` is `true`: `dev`, when it is out of date.
-
-The variable `PUBLISH` waits for the bucket's credentials: set it to `true` once the secrets are.
-
-## Add a DHIS2 version or a fix-up
-
-Nothing watches Docker Hub for a new DHIS2 patch or major: add it by hand, in a pull request.
-
-1. Its image by digest in `lock.toml`, with the version it upgrades from. A major's first release
-   upgrades from the previous major's first release, as 43.0 from 42.0; a major's latest from its
-   first, as 43 from 43.0.
-2. `upgrades/<version>/` with the queries of its [migration notes][notes] in `check.sql`, each led
-   by a comment naming its note, each must return no rows.
-3. The fix-ups those ask for: `pre.sql` runs before the version's DHIS2 starts, `post.sql` after
-   Flyway migrated, each in one transaction. Each change says why and which note it answers. Expect
-   few: the notes' fixes are mostly for data dbgen never writes. A fix-up only changes data that
-   is valid in one version and must change for the next; what is wrong for every version is fixed
-   in dbgen, the spec or the metadata.
-
-Once merged, tag a release. `dev/check.sql` holds the 2.44 notes' queries; two read the note tables
-2.43.3 removes, so drop them once 43 is 2.43.3 or later.
-
-[notes]: https://github.com/dhis2/dhis2-releases/tree/master/releases
-
-## Development
-
-```sh
-uv run ruff check
-uv run ruff format --check
-uv run ty check
-uv run pytest
-```
-
-The tests need no Docker. `uv run pre-commit install` runs ruff and ty on every commit, as CI
-does. Dependabot updates the actions and the uv dependencies monthly, but not dbgen, which is
-bumped deliberately in a pull request.
-
-### Release
-
-A tag `vX.Y.Z` on `main` is a release: `release.yml` builds, upgrades and checks every version
-but `dev` and uploads them, overwriting each version's dump. Tag when what is published should
-change: a DHIS2 image in `lock.toml`, a dbgen bump, the spec or an upgrade. `publish` refuses
-without a tag at HEAD and a clean tree, and each manifest and S3 object records the tag, so a dump
-leads back to the code that made it. A failure of the runner is re-run on the same tag; a fix needs
-a new one.
-
-`dev` needs no tag: the nightly publishes it from `main`.
+`output` may be a link to a larger disk. Dependabot updates the actions and the uv dependencies
+monthly, but not dbgen, which is bumped deliberately in a pull request of its own.
 
 ## Licence
 

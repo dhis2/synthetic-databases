@@ -10,7 +10,7 @@ from pipeline.errors import CheckFailed, UsageError
 
 EXAMPLES = """\
 examples:
-  pipeline release mnch --test    the pull request job: the test area along the tree
+  pipeline release mnch --test    as CI: the ward, built, upgraded and checked
   pipeline release mnch           build, upgrade and check every version of a release
   pipeline publish mnch --dry-run
   pipeline nightly mnch           the published 43 upgraded to dev, checked

@@ -343,7 +343,6 @@ VPD_CS_PATINFO_RESADMIN0 = { sql = "district.name || ', ' || region.name" } # ho
 [records]
 deleted = 0.01
 followup = 0.03
-assigned = 0.05
 updated = { share = 0.1, after = { exponential = 30 } }
 
 [load]

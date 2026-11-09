@@ -76,9 +76,9 @@ QP0602-02. Times are of a standard GitHub runner, 4 CPUs and 16 GB, on 2026-11-0
 | dump of each version | 506 to 509 MiB | 21 MiB |
 | dbgen build | 13 min | 4 min |
 | release: build, upgrades and checks | 47 min | 12 min |
-| DHIS2's start migrating to 43.0 | 152 s | 49 s |
+| DHIS2's start migrating to 43.0 | 132 to 251 s | 49 s |
 
-43.0's migrations grow with the data: on QP1613 2.43.21 takes 59 s and 2.43.22 35 s.
+43.0's migrations grow with the data: on QP1613 2.43.21 takes 38 to 169 s, by runner.
 
 The users are made for performance testing only: their password is `Perf-Test-2026!`, and the
 superuser stays `admin` with `district`.

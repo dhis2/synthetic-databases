@@ -16,7 +16,8 @@ services:
     shm_size: 2gb
     # Nothing here needs to survive a crash, the result is dumped. As dbgen builds, but with
     # autovacuum on, as an instance runs its migrations. Its memory fits a mem_limit of 3g or more:
-    # shared_buffers, one maintenance_work_mem and 3 autovacuum workers' autovacuum_work_mem.
+    # shared_buffers, one maintenance_work_mem and 3 autovacuum workers' autovacuum_work_mem. No
+    # parallel vacuum: it sizes its shared memory by the table, 469 MB for event, beyond mem_limit.
     command: >
       postgres
       -c wal_level=minimal

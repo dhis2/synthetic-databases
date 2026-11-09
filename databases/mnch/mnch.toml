@@ -246,8 +246,8 @@ oRAwfsX0TR7 = { constant = true, if = "enrollment.outcome = 1" } # no complicati
 
 [program.RMNCAH_ANC.attributes]
 "ANC.A.DE1" = { pattern = '"ANC-" + RANDOM(##########)' } # unique ID
-GIVEN_NAME = { words = { n = 40_000, s = 1.1, vocabulary = "given" } }
-FAMILY_NAME = { words = { n = 100_000, s = 1.05, vocabulary = "family" } }
+GIVEN_NAME = { words = { n = 20_000, s = 1.4, q = 25, vocabulary = "given" } }
+FAMILY_NAME = { words = { n = 100_000, s = 1.05, q = 20, vocabulary = "family" } }
 PATINFO_DOB = { sql = "record.date - 365.25 * tracked_entity.age" }
 ADDRESS = { sql = "district.name || ', ' || region.name" }
 "Mobile phone number" = { phone = true, fill = 0.7 }
@@ -330,14 +330,14 @@ q7KhhAnm5GA = { constant = true, if = "event.number = 4", fill = 0.95 } # rubell
 Bxh1xgIY9nA = { constant = true, if = "event.number = 5", fill = 0.95 } # measles 2
 
 [program.IMM_EIR.attributes]
-GIVEN_NAME = { words = { n = 40_000, s = 1.1, vocabulary = "given" } }
-FAMILY_NAME = { words = { n = 100_000, s = 1.05, vocabulary = "family" } }
+GIVEN_NAME = { words = { n = 20_000, s = 1.4, q = 25, vocabulary = "given" } }
+FAMILY_NAME = { words = { n = 100_000, s = 1.05, q = 20, vocabulary = "family" } }
 PATINFO_DOB = { sql = "record.date - tracked_entity.age_at_first" }
 PATINFO_SEX = { weights = { FEMALE = 1, MALE = 1 } }
 UNIQUE_SYS_ID_EPI = { pattern = '"EPI_" + RANDOM(########)' }
 VPD_CS_PATINFO_RESADMIN0 = { sql = "district.name || ', ' || region.name" } # home address
-"Primary contact's first name" = { words = { n = 40_000, s = 1.1, vocabulary = "given" } }
-"Primary contact's last name" = { words = { n = 100_000, s = 1.05, vocabulary = "family" } }
+"Primary contact's first name" = { words = { n = 20_000, s = 1.4, q = 25, vocabulary = "given" } }
+"Primary contact's last name" = { words = { n = 100_000, s = 1.05, q = 20, vocabulary = "family" } }
 "Primary contact number" = { phone = true, fill = 0.7 }
 
 [records]

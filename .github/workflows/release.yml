@@ -22,7 +22,7 @@ on:
 permissions:
   contents: read
 
-# One upload to the bucket at a time, the nightly's among them.
+# One upload to the bucket at a time, dev.yml's among them.
 concurrency:
   group: publish-perfland-mnch
   cancel-in-progress: false

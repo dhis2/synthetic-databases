@@ -1,0 +1,99 @@
+# dev: the district at DHIS2 master, dhis2/core-dev:latest, for core's perf tests. dbgen builds
+# 42.0, which is upgraded to 43.0, 43 and dev, checked and published as dev. The same on the
+# schedule and dispatched by hand: gh workflow run dev.yml --repo dhis2/synthetic-databases
+#
+# Only when the published dev is out of date (pipeline dev --if-changed): none published, another
+# pipeline commit, or new migrations on DHIS2 master. Otherwise it stops after that comparison,
+# and publishes nothing. A failure of the upgrade to dev is a migration of master failing or slow
+# on realistic data: tell core.
+#
+# The 43 it upgrades is cached by what makes it: dbgen's pin, the spec and the area, the images,
+# the upgrades to 43.0 and 43 and the code that builds and upgrades. A run with that unchanged,
+# such as for new migrations on master, skips the build and its two upgrades.
+#
+# Needs the environment publish, which deploys from main only, and whose variable AWS_ROLE_ARN is
+# the role it assumes to upload.
+name: Dev
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One upload to the bucket at a time, release.yml's among them.
+concurrency:
+  group: publish-perfland-mnch
+  cancel-in-progress: false
+
+jobs:
+  dev:
+    # A standard runner of a public repository: 4 CPUs and 16 GB, with the caps of ci.yml's
+    # release-test, which also cap the pipeline's stack.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    environment: publish
+    permissions:
+      contents: read
+      id-token: write # the OIDC token the role is assumed with
+    env:
+      DBGEN_DB_MEMORY: 3g
+      DBGEN_WEB_MEMORY: 4g
+      DBGEN_WEB_HEAP: 2500m
+      DBGEN_HEADROOM: 3g
+    steps:
+      - name: Show the free disk
+        run: df --human-readable /
+      # Actions pinned by commit, which Dependabot updates (.github/dependabot.yml).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          # Exact, so CI changes only by a commit; within pyproject.toml's required-version.
+          version: "0.13.7"
+      - run: uv sync --locked
+      - name: Restore the 43 built from the same inputs
+        id: cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: output/publish/perfland-mnch/43
+          key: perfland-mnch-43-${{ hashFiles('uv.lock', 'lock.toml', 'databases/mnch/**', 'upgrades/43.0/**', 'upgrades/43/**', 'src/pipeline/build.py', 'src/pipeline/upgrade.py', 'src/pipeline/stack.py', 'src/pipeline/sqlfile.py', 'src/pipeline/docker/**') }}
+      - name: Build 42.0 and upgrade it to 43.0 and 43
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          uv run pipeline build mnch
+          uv run pipeline upgrade mnch 43.0
+          uv run pipeline upgrade mnch 43
+      - name: Cache the 43
+        # Before the upgrade to dev, so a master that fails it does not cost the next run a build.
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: output/publish/perfland-mnch/43
+          key: ${{ steps.cache.outputs.cache-primary-key }}
+      - name: Upgrade 43 to dev and check it, if dev is out of date
+        env:
+          # For GitHub's API, which tells whether DHIS2 master changed its migrations.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: uv run pipeline dev mnch --if-changed
+      - name: Upload the manifest and DHIS2's logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dev
+          path: |
+            output/publish/**/manifest.json
+            output/logs/
+          if-no-files-found: ignore
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        # Only for a dev made in this run: none if the published one was current.
+        if: hashFiles('output/publish/*/dev/manifest.json') != ''
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Publish dev
+        if: hashFiles('output/publish/*/dev/manifest.json') != ''
+        run: uv run pipeline publish mnch dev

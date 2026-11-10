@@ -13,8 +13,8 @@ examples:
   pipeline release mnch --test    as CI: the ward, built, upgraded and checked
   pipeline release mnch           build, upgrade and check every version of a release
   pipeline publish mnch --dry-run
-  pipeline nightly mnch           the published 43 upgraded to dev, checked
-  pipeline nightly mnch --if-changed  the same, only if the published dev is out of date
+  pipeline dev mnch               the 43 in output/ upgraded to dev, checked
+  pipeline dev mnch --if-changed  the same, only if the published dev is out of date
   pipeline upgrade mnch 43.0
   pipeline check mnch 43.0
 """
@@ -68,7 +68,7 @@ def main(argv: list[str] | None = None) -> None:
     timeout(p)
     p.set_defaults(func=cmd_check)
 
-    p = command("release", "build, upgrade and check every version but the nightly's")
+    p = command("release", "build, upgrade and check every pinned version")
     area(p)
     timeout(p)
     p.set_defaults(func=cmd_release)
@@ -77,27 +77,25 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("version", help="a version of lock.toml, such as 43")
     p.set_defaults(func=cmd_fetch)
 
-    p = command("nightly", "fetch the nightly's source version, upgrade it to the nightly's, check")
-    p.add_argument(
-        "--local",
-        action="store_true",
-        help="upgrade the source version in output/publish/ instead of the published one",
+    p = command(
+        "dev",
+        "upgrade the 43 in output/, built or fetched before, to dev and check it",
     )
     p.add_argument(
         "--if-changed",
         action="store_true",
-        help="upgrade only if the published nightly version is out of date: none published, "
-        "another pipeline commit, another published source, or new DHIS2 migrations",
+        help="upgrade only if the published dev is out of date: none published, another "
+        "pipeline commit, or new DHIS2 migrations",
     )
     timeout(p)
-    p.set_defaults(func=cmd_nightly)
+    p.set_defaults(func=cmd_dev)
 
     p = command("publish", "upload checked dumps and their manifests to the bucket")
     p.add_argument(
         "versions",
         nargs="*",
         metavar="VERSION",
-        help="the versions to publish (default: a release's, every version but the nightly's)",
+        help="the versions to publish (default: a release's, every pinned version)",
     )
     p.add_argument(
         "--dry-run",
@@ -159,24 +157,19 @@ def cmd_fetch(args: argparse.Namespace, db: Database) -> None:
     fetch.run(db, args.version)
 
 
-def cmd_nightly(args: argparse.Namespace, db: Database) -> None:
-    from pipeline import check, fetch, nightly, upgrade
+def cmd_dev(args: argparse.Namespace, db: Database) -> None:
+    from pipeline import check, dev, upgrade
 
-    if args.if_changed and args.local:
-        raise UsageError("--if-changed compares with what is published, --local with output/")
-    versions = [v for v in lock().versions.values() if v.nightly]
+    versions = [v for v in lock().versions.values() if v.unpinned]
     if not versions:
-        raise UsageError("lock.toml has no version with nightly = true")
+        raise UsageError("lock.toml has no version with unpinned = true")
     for version in versions:
-        assert version.source is not None
         if args.if_changed:
-            reasons = nightly.changes(db, version)
+            reasons = dev.changes(db, version)
             if not reasons:
-                print(f"nightly: the published {version.name} is current", file=sys.stderr)
+                print(f"dev: the published {version.name} is current", file=sys.stderr)
                 continue
-            print(f"nightly: {version.name}: {'; '.join(reasons)}", file=sys.stderr)
-        if not args.local:
-            fetch.run(db, version.source)
+            print(f"dev: {version.name}: {'; '.join(reasons)}", file=sys.stderr)
         upgrade.run(db, version.name, args.timeout)
         check.run(db, version.name, args.timeout)
 

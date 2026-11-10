@@ -169,7 +169,7 @@ def cmd_dev(args: argparse.Namespace, db: Database) -> None:
             if not reasons:
                 print(f"dev: the published {version.name} is current", file=sys.stderr)
                 continue
-            print(f"dev: {version.name}: {'; '.join(reasons)}", file=sys.stderr)
+            print(f"dev: {version.name} is out of date: {'; '.join(reasons)}", file=sys.stderr)
         upgrade.run(db, version.name, args.timeout)
         check.run(db, version.name, args.timeout)
 

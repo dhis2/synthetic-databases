@@ -17,7 +17,10 @@ name: Dev
 
 on:
   schedule:
-    - cron: "0 5 * * *"
+    # Before core's scheduled perf tests at 01:00 UTC on dhis2/core-dev:latest, with time for a
+    # build and a re-run, and after most of the day's merges to master. Off the hour, when GitHub
+    # delays scheduled runs the most.
+    - cron: "17 23 * * *"
   workflow_dispatch:
 
 permissions:

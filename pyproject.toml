@@ -33,7 +33,7 @@ package = true
 [tool.uv.sources]
 # By commit until dbgen is tagged; then by tag, such as
 # { git = "https://github.com/dhis2/synthetic-db-generator", tag = "v0.1.0" }.
-synthetic-db-generator = { git = "https://github.com/dhis2/synthetic-db-generator", rev = "22873942ed2b95a0f1ebfd3a7622eb59396bf6e4" }
+synthetic-db-generator = { git = "https://github.com/dhis2/synthetic-db-generator", rev = "ff7653ece445f7f2760bca8ba94fef75a6e54404" }
 
 [dependency-groups]
 dev = [

@@ -75,6 +75,7 @@ unvalidated = ["B6TnnFMgmCk", "d4mOfPlHrEP"]
 count = { poisson = 0.26, plus = 1 } # one pregnancy, and maybe more, one after another
 gap = { uniform = [182, 546] } # from the last event to the next first contact
 status = { COMPLETED = 0.6, ACTIVE = 0.4 } # of a woman's last pregnancy that ended
+followup = 0.03 # marked for follow-up
 
 [program.RMNCAH_ANC.trait.tracked_entity]
 age = { uniform = [15, 45] } # at her first booking, in years
@@ -259,7 +260,7 @@ B6TnnFMgmCk = { sql = "date_sub('year', value.NI0QRzJvQ0k::date, of_days(record.
 # births (from); tracked_entities draws only those whose mothers did not come to ANC.
 [program.IMM_EIR]
 tracked_entities = { total = "district.people * 0.024", among = "District", by = "facility.size * facility.weight" }
-enrollments = { status = { ACTIVE = 1 } }
+enrollments = { status = { ACTIVE = 1 }, followup = 0.03 }
 
 # A live birth of ANC, at the facility of the pregnancy's contacts, from its first visit on.
 [program.IMM_EIR.from]
@@ -341,8 +342,6 @@ VPD_CS_PATINFO_RESADMIN0 = { sql = "district.name || ', ' || region.name" } # ho
 "Primary contact number" = { phone = true, fill = 0.7 }
 
 [records]
-deleted = 0.01
-followup = 0.03
 updated = { share = 0.1, after = { exponential = 30 } }
 
 [load]

@@ -102,6 +102,10 @@ Two workflows publish, from `main`:
 gh workflow run dev.yml --repo dhis2/synthetic-databases
 ```
 
+Dispatched from a branch, `--ref <branch>`, dev builds, upgrades and checks, shows what it would
+publish and refuse, and uploads nothing: only its publish job, run from `main`, can assume the
+bucket's role.
+
 `dev` follows master by itself, as core's nightly perf tests do. `42` and `43` move only with a
 pull request and a release: a patch or major can come with migration notes that ask for checks or
 fix-ups, reviewed before its dump is published.

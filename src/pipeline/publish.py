@@ -2,7 +2,7 @@
 
 Every version or none: it uploads only once each version's dump matches its manifest, passed
 its check, holds the release area and was made by this commit of the pipeline, from a clean
-tree. A release's versions are made from a tag; the nightly's from any commit.
+tree. A release's versions are made from a tag; an unpinned one, dev, from any commit.
 
 Each dump carries in its metadata what a HEAD request on it tells without downloading it
 (metadata()); its manifest.json beside it carries none, as it holds all of it. Writes take
@@ -56,7 +56,7 @@ def run(database: Database, names: list[str], dry_run: bool, bucket: str = BUCKE
             problems.append(f"{name}: made from a tree with uncommitted changes")
     if state["dirty"] is not False:
         problems.append("the tree has uncommitted changes")
-    if not all(v.nightly for v in versions) and not state["tag"]:
+    if not all(v.unpinned for v in versions) and not state["tag"]:
         problems.append("a release publishes from a tag, and no tag points at HEAD")
 
     if problems:
@@ -115,9 +115,9 @@ def metadata(record: dict, label: str, env: Mapping[str, str] = os.environ) -> d
 
 
 def run_url(env: Mapping[str, str]) -> str | None:
-    """The attempt of the GitHub Actions run that publishes, None outside of one. A nightly
-    publishes dev from the same commit night after night: the run tells them apart, and links to
-    its logs and manifests."""
+    """The attempt of the GitHub Actions run that publishes, None outside of one. dev.yml
+    publishes dev from the same commit run after run: the run tells them apart, and links to its
+    logs and manifests."""
     run = env.get("GITHUB_RUN_ID")
     if not run:
         return None

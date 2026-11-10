@@ -34,10 +34,10 @@ def test_the_lock_lists_a_tree_from_the_base():
         ({"42": {"from": "42.0", "dhis2": "core:42" + DIGEST, "form": "x"}}, "unknown keys form"),
         (
             {
-                "dev": {"from": "42.0", "dhis2": "core-dev:latest", "nightly": True},
+                "dev": {"from": "42.0", "dhis2": "core-dev:latest", "unpinned": True},
                 "45": {"from": "dev", "dhis2": "core:45" + DIGEST},
             },
-            "the nightly's",
+            "which is unpinned",
         ),
         ({"4 3": {"from": "42.0", "dhis2": "core:43" + DIGEST}}, "a version is letters"),
     ],

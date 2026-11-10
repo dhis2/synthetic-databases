@@ -1,5 +1,6 @@
-"""`pipeline fetch`: a published version's dump and manifest, as the nightly upgrades the
-published 43 to dev. Reads are public, without credentials, from S3 itself: the bucket's website
+"""`pipeline fetch`: a published version's dump and manifest, such as a published 43 for
+`pipeline dev` to upgrade, or the published dev's manifest that `pipeline dev --if-changed`
+compares. Reads are public, without credentials, from S3 itself: the bucket's website
 (https://databases.dhis2.org) is CloudFront, which may serve an older object for a while after a
 release overwrote it. The bucket's name has dots, so the URL is path-style: the virtual-hosted
 one fails TLS."""

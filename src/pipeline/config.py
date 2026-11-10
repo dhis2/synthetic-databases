@@ -42,7 +42,7 @@ class Version:
     name: str
     dhis2: str | None  # the DHIS2 image; None for the base, which dbgen's lock.toml pins
     source: str | None  # the version it is upgraded from; None for the base
-    nightly: bool = False  # the nightly's, not a release's
+    unpinned: bool = False  # follows its image's tag, published by dev.yml, not by a release
 
     @property
     def upgrades(self) -> Path:
@@ -56,8 +56,8 @@ class Lock:
     versions: dict[str, Version]  # the base and every upgrade, each after its source
 
     def release(self) -> list[Version]:
-        """The versions a release publishes: all but the nightly's, the base first."""
-        return [v for v in self.versions.values() if not v.nightly]
+        """The versions a release publishes: the pinned ones, the base first."""
+        return [v for v in self.versions.values() if not v.unpinned]
 
     def version(self, name: str) -> Version:
         if name not in self.versions:
@@ -115,7 +115,7 @@ def lock() -> Lock:
 
 def parse_lock(data: dict) -> Lock:
     """lock.toml's versions, checked: each upgrades from the base or a version before it, with a
-    DHIS2 image pinned by digest but the nightly's, and its fix-ups in upgrades/<version>/."""
+    DHIS2 image pinned by digest unless unpinned, and its fix-ups in upgrades/<version>/."""
     base = data.get("base")
     if not isinstance(base, str) or not VERSION.fullmatch(base):
         raise UsageError("lock.toml: base must be the version dbgen builds, such as 42.0")
@@ -130,7 +130,7 @@ def parse_lock(data: dict) -> Lock:
             raise UsageError(f"{where}: a version is letters, digits, '.', '-' and '_'")
         if name in versions:
             raise UsageError(f"{where}: {name} is the base, which dbgen builds")
-        unknown = set(entry) - {"from", "dhis2", "nightly"}
+        unknown = set(entry) - {"from", "dhis2", "unpinned"}
         if unknown:
             raise UsageError(f"{where}: unknown keys {', '.join(sorted(unknown))}")
         source, image = entry.get("from"), entry.get("dhis2")
@@ -138,14 +138,14 @@ def parse_lock(data: dict) -> Lock:
             raise UsageError(
                 f"{where}: from = {source!r} must be the base or a version listed before it"
             )
-        nightly = bool(entry.get("nightly", False))
+        unpinned = bool(entry.get("unpinned", False))
         if not isinstance(image, str):
             raise UsageError(f"{where}: dhis2 must name the DHIS2 image")
-        if not nightly and "@sha256:" not in image:
-            raise UsageError(f"{where}: pin {image} by digest, as only the nightly follows a tag")
-        if versions[source].nightly:
-            raise UsageError(f"{where}: upgrades from {source}, the nightly's")
-        versions[name] = Version(name, image, source, nightly)
+        if not unpinned and "@sha256:" not in image:
+            raise UsageError(f"{where}: pin {image} by digest, or set unpinned = true")
+        if versions[source].unpinned:
+            raise UsageError(f"{where}: upgrades from {source}, which is unpinned")
+        versions[name] = Version(name, image, source, unpinned)
     return Lock(base, dict(images), versions)
 
 

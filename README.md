@@ -23,7 +23,7 @@ Electronic Immunization Registry (EIR) tracker packages. One dump per DHIS2 imag
 | `42` | `dhis2/core:42`, 2.42.7.1 | `42.0` | a release |
 | `43.0` | `dhis2/core:43.0`, 2.43.0.1 | `42.0` | a release |
 | `43` | `dhis2/core:43`, 2.43.2.1 | `43.0` | a release |
-| `dev` | `dhis2/core-dev:latest`, unpinned | `43` | the [nightly](#publish), when out of date |
+| `dev` | `dhis2/core-dev:latest`, unpinned | `43` | [dev](#publish), when out of date |
 
 `s3://databases.dhis2.org/perfland-mnch/<version>/` holds the dump,
 `dhis2-db-perfland-mnch.sql.gz`, and `manifest.json`, what made it. Reads are public:
@@ -33,7 +33,9 @@ aws s3 cp --no-sign-request s3://databases.dhis2.org/perfland-mnch/43/manifest.j
 ```
 
 Every dump holds the same records, with the same UIDs, names and users: a perf test's parameters
-fit every version, and two versions compared measure DHIS2, not two datasets.
+fit every version, and two versions compared measure DHIS2, not two datasets. One exception: `dev`
+is built from `main`, the others from a release's tag, so while `main` changes dbgen, the spec or
+the area ahead of a release, `dev` holds other records.
 
 Run the dump of the DHIS2 you run: on any other, DHIS2 migrates it at the start of every run, and
 is measured fresh out of a migration. That includes a newer patch than the pinned one: `42` and
@@ -90,18 +92,26 @@ Two workflows publish, from `main`:
 * **A release**, `release.yml` on a tag `vX.Y.Z`: builds the district, upgrades and checks every
   version but `dev`, and uploads them all or none. Then, with the variable `CORE_PERF_TESTS`, it
   runs core's perf tests on them.
-* **The nightly**, `nightly.yml` daily: upgrades the published `43` to `dhis2/core-dev:latest` and
-  uploads it as `dev`, only when `dev` is out of date: DHIS2 master changed its migrations, `43`
-  was released again, or `main` moved. A failure is a migration of master failing or slow on
-  realistic data: tell core.
+* **Dev**, `dev.yml` daily and by hand: builds the district, upgrades it to `43` and on to
+  `dhis2/core-dev:latest`, checks it and uploads it as `dev`, only when `dev` is out of date: DHIS2
+  master changed its migrations, or `main` moved. A failure of the upgrade to `dev` is a migration
+  of master failing or slow on realistic data: tell core. It caches the `43` by what makes it, so
+  a run for master's migrations alone skips the build: about 12 minutes instead of 40.
+
+```sh
+gh workflow run dev.yml --repo dhis2/synthetic-databases
+```
+
+Dispatched from a branch, `--ref <branch>`, dev builds, upgrades and checks, shows what it would
+publish and refuse, and uploads nothing: only its publish job, run from `main`, can assume the
+bucket's role.
 
 `dev` follows master by itself, as core's nightly perf tests do. `42` and `43` move only with a
 pull request and a release: a patch or major can come with migration notes that ask for checks or
 fix-ups, reviewed before its dump is published.
 
 Until the variable `PUBLISH` is `true`, which waits for the bucket's credentials, a tag runs a
-dry run and the nightly is off. `ci.yml`, on pull requests and `main`, releases the ward without
-upload.
+dry run. `ci.yml`, on pull requests and `main`, releases the ward without upload.
 
 Release when what is published should change: a new DHIS2 patch or major (below), a dbgen bump,
 or a change of the spec, the area or an upgrade.
@@ -150,8 +160,8 @@ synthetic-databases/
 ├── lock.toml                  the base, and the DHIS2 image of each version by digest
 ├── databases/mnch/            the spec, metadata, packages.lock.toml, and publish.toml: the areas
 ├── upgrades/<version>/        check.sql, pre.sql, post.sql of the upgrade to the version
-├── src/pipeline/              build, upgrade, check, fetch, publish, nightly
-└── .github/workflows/         ci.yml, release.yml, nightly.yml, each described in its header
+├── src/pipeline/              build, upgrade, check, fetch, publish, dev
+└── .github/workflows/         ci.yml, release.yml, dev.yml, each described in its header
 ```
 
 A release of the area of `publish.toml`, each step described in its module of `src/pipeline/`:
@@ -163,8 +173,9 @@ A release of the area of `publish.toml`, each step described in its module of `s
    number as in the build, a clerk's tracker queries answer (`check.py`).
 4. **Publish** every version or none, from a tag with a clean tree (`publish.py`).
 
-The nightly runs steps 2 to 4 for `dev` (`nightly.py`). `manifest.json` beside each dump says
-what made it, from dbgen's build to the last upgrade (`manifest.py`).
+`dev.yml` runs steps 1 and 2 up to `43`, or takes its `43` from its cache, then 2 to 4 for `dev`
+(`dev.py`). `manifest.json` beside each dump says what made it, from dbgen's build to the last
+upgrade (`manifest.py`).
 
 ## Develop
 
@@ -181,7 +192,7 @@ uv run pipeline release mnch          # as a release: the district, without the 
 uv run pipeline publish mnch --dry-run
 ```
 
-`pipeline build`, `upgrade`, `check` and `nightly` run one step, on what an earlier one left in
+`pipeline build`, `upgrade`, `check` and `dev` run one step, on what an earlier one left in
 `output/`; `pipeline <command> -h` tells more. What it writes, none of it committed:
 
 ```

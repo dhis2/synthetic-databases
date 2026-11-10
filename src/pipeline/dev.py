@@ -1,10 +1,10 @@
-"""Whether the nightly has anything new to upgrade, for `pipeline nightly --if-changed`.
+"""Whether dev is out of date, for `pipeline dev --if-changed`.
 
 The published dev stays as it is unless something that made it changed:
 
 * no dev is published yet
-* the pipeline is at another commit, which may change dev's fix-ups, the upgrade or the check
-* the published source, 43, is another dump than dev was upgraded from: a release since
+* the pipeline is at another commit, which may change the data, dev's fix-ups, the upgrade or the
+  check: dbgen builds the same 43 from the same commit
 * DHIS2 master changed its migrations: a commit of dhis2-core between the revision dev was
   migrated by and core-dev:latest's touched the migration module
 
@@ -28,28 +28,22 @@ MIGRATIONS = "dhis-2/dhis-support/dhis-support-db-migration/src/main"
 
 
 def changes(database: Database, version: Version) -> list[str]:
-    """Why the nightly's version needs upgrading again; empty if the published one is current."""
-    assert version.source is not None and version.dhis2 is not None
-    source = fetch.published(database, version.source)
-    if source is None:
-        raise CheckFailed(f"no published {version.source} to upgrade to {version.name}")
+    """Why an unpinned version needs upgrading again; empty if the published one is current."""
+    assert version.dhis2 is not None
     published = fetch.published(database, version.name)
     revision = stack.remote_labels(version.dhis2).get("DHIS2_BUILD_REVISION")
-    return reasons(
-        published, source, provenance.state()["commit"], revision, latest_migration_commit
-    )
+    return reasons(published, provenance.state()["commit"], revision, latest_migration_commit)
 
 
 def reasons(
     published: dict | None,
-    source: dict,
     commit: str | None,
     revision: str | None,
     latest_migration_commit: Callable[[str], str | None],
 ) -> list[str]:
-    """Why the published nightly version is out of date: no longer of this pipeline commit, of
-    the published source, or of DHIS2's migrations at revision. latest_migration_commit gives
-    the last commit of dhis2-core that touched the migrations, as of a revision."""
+    """Why a published unpinned version is out of date: no longer of this pipeline commit, or of
+    DHIS2's migrations at revision. latest_migration_commit gives the last commit of dhis2-core
+    that touched the migrations, as of a revision."""
     if published is None:
         return ["none is published"]
     step = published["chain"][-1]
@@ -57,8 +51,6 @@ def reasons(
     if commit is None or step.get("pipeline") != commit:
         made_by = _short(step.get("pipeline"))
         found.append(f"the pipeline is at {_short(commit)}, it was made by {made_by}")
-    if step.get("source_sha256") != source["dump"]["sha256"]:
-        found.append(f"the published {step.get('from')} is another dump than it was upgraded from")
     migrated = published.get("dhis2", {}).get("DHIS2_BUILD_REVISION")
     if revision is None or migrated is None:
         found.append("DHIS2's revision is unknown, of the image or of the published one")

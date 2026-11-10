@@ -19,18 +19,20 @@ name: Dev
 
 on:
   schedule:
-    # Before core's scheduled perf tests at 01:00 UTC on dhis2/core-dev:latest, with time to wait
-    # for a release in the concurrency group and then build, and after most of the day's merges to
-    # master. Off the hour: GitHub delays scheduled runs on the hour the most.
+    # Before core's scheduled perf tests at 01:00 UTC on dhis2/core-dev:latest, with time to build,
+    # and after most of the day's merges to master. Off the hour: GitHub delays scheduled runs on
+    # the hour the most.
     - cron: "17 22 * * *"
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# One upload to the bucket at a time, release.yml's among them.
+# One dev at a time, as each uploads to perfland-mnch/dev/. A run dispatched while one waits
+# replaces it. Not with release.yml's, which uploads other versions: a release waiting behind dev
+# would be canceled by the next dev, and dev would wait hours behind a release.
 concurrency:
-  group: publish-perfland-mnch
+  group: dev-perfland-mnch
   cancel-in-progress: false
 
 jobs:

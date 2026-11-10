@@ -22,7 +22,8 @@ on:
 permissions:
   contents: read
 
-# One upload to the bucket at a time, dev.yml's among them.
+# One release at a time, as each uploads every version. dev.yml has its own group: dev is another
+# version.
 concurrency:
   group: publish-perfland-mnch
   cancel-in-progress: false

@@ -112,8 +112,8 @@ jobs:
           if-no-files-found: error
           # The dump is gzipped already.
           compression-level: 0
-          # Long enough to re-run a failed publish.
-          retention-days: 7
+          # Only for this run's publish, or a re-run of it: the next run makes its own.
+          retention-days: 1
 
   publish:
     needs: build

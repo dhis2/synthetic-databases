@@ -93,7 +93,8 @@ Two workflows publish, from `main`:
 * **The nightly**, `nightly.yml` daily: upgrades the published `43` to `dhis2/core-dev:latest` and
   uploads it as `dev`, only when `dev` is out of date: DHIS2 master changed its migrations, `43`
   was released again, or `main` moved. A failure is a migration of master failing or slow on
-  realistic data: tell core.
+  realistic data: tell core. Dispatched with `from_scratch`, it builds `43` itself instead of
+  fetching the published one, and uploads `dev` alone: a `dev` before any release.
 
 `dev` follows master by itself, as core's nightly perf tests do. `42` and `43` move only with a
 pull request and a release: a patch or major can come with migration notes that ask for checks or

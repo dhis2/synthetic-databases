@@ -5,14 +5,24 @@
 # another pipeline commit, another published 43, or new migrations on DHIS2 master. Otherwise it
 # stops after that comparison, and publishes nothing.
 #
-# Needs the S3 secrets of release.yml, and variable PUBLISH set to true: without it the job is
-# skipped, as there is no published 43 to start from.
+# Dispatched with from_scratch, it builds 42.0 and upgrades it to 43.0 and 43 here instead of
+# fetching the published 43, and publishes only dev: a dev before any release, to iterate on. It
+# checks dev alone, not the versions on the way.
+#
+# Needs the environment publish, whose variable AWS_ROLE_ARN is the role it assumes to upload.
+# The schedule needs variable PUBLISH set to true too: without it the scheduled job is skipped,
+# as there is no published 43 to start from.
 name: Nightly
 
 on:
   schedule:
     - cron: "0 5 * * *"
   workflow_dispatch:
+    inputs:
+      from_scratch:
+        description: "Build 43 here instead of fetching the published one"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -23,12 +33,17 @@ concurrency:
 
 jobs:
   nightly:
-    if: vars.PUBLISH == 'true'
+    if: github.event_name == 'workflow_dispatch' || vars.PUBLISH == 'true'
     # A standard runner of a public repository: 4 CPUs and 16 GB, with the caps of ci.yml's
-    # release-test, which also cap the pipeline's stack. It builds nothing with dbgen, only
-    # restores, upgrades and dumps the release area.
+    # release-test, which also cap the pipeline's stack. Unless from_scratch, it builds nothing
+    # with dbgen, only restores, upgrades and dumps the release area.
     runs-on: ubuntu-24.04
-    timeout-minutes: 240
+    timeout-minutes: 360
+    # The environment the role trusts, which deploys from main only.
+    environment: publish
+    permissions:
+      contents: read
+      id-token: write # the OIDC token the role is assumed with
     env:
       DBGEN_DB_MEMORY: 3g
       DBGEN_WEB_MEMORY: 4g
@@ -46,7 +61,17 @@ jobs:
           # Exact, so CI changes only by a commit; within pyproject.toml's required-version.
           version: "0.13.7"
       - run: uv sync --locked
+      - name: Build 42.0 and upgrade it to 43.0 and 43
+        if: inputs.from_scratch
+        run: |
+          uv run pipeline build mnch
+          uv run pipeline upgrade mnch 43.0
+          uv run pipeline upgrade mnch 43
+      - name: Upgrade the 43 built here to dev and check it
+        if: inputs.from_scratch
+        run: uv run pipeline nightly mnch --local
       - name: Fetch the published 43, upgrade it to dev and check it, if dev is out of date
+        if: ${{ !inputs.from_scratch }}
         env:
           # For GitHub's API, which tells whether DHIS2 master changed its migrations.
           GITHUB_TOKEN: ${{ github.token }}
@@ -60,16 +85,12 @@ jobs:
             output/publish/**/manifest.json
             output/logs/
           if-no-files-found: ignore
-      - name: Publish dev
-        # Only a dev made in this run: none if the published one was current.
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        # Only for a dev made in this run: none if the published one was current.
         if: hashFiles('output/publish/*/dev/manifest.json') != ''
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.PERF_DATABASES_AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.PERF_DATABASES_AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: eu-west-1
-        run: |
-          if [ -z "$AWS_ACCESS_KEY_ID" ]; then
-            echo "::error::secret PERF_DATABASES_AWS_ACCESS_KEY_ID is not set"
-            exit 1
-          fi
-          uv run pipeline publish mnch dev
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Publish dev
+        if: hashFiles('output/publish/*/dev/manifest.json') != ''
+        run: uv run pipeline publish mnch dev

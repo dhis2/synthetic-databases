@@ -86,6 +86,22 @@ superuser stays `admin` with `district`.
 `dbgen areas databases/mnch/mnch.toml` estimates the records of every other area, and `dbgen
 explain databases/mnch/mnch.toml` lists the fields each stage fills.
 
+### Limitations
+
+The records are a registry in use, without its history. A request that filters on what they lack
+reads empty or uniform data, and Postgres may plan it otherwise than in production.
+
+* Nothing is deleted: no tracked entity, enrollment, event or relationship.
+* Every EIR enrollment is ACTIVE, ANC's 40% ACTIVE and 60% COMPLETED (`mnch.toml`). None is
+  CANCELLED.
+* Events are COMPLETED, SCHEDULE or SKIPPED, the last only in ANC. None is ACTIVE, OVERDUE or
+  VISITED.
+* Tracker programs only: there are no single events.
+* No notes, inactive tracked entities or potential duplicates.
+* Relationships are mother and child only, between tracked entities. None links an event or an
+  enrollment.
+* Only the area has records: the rest of Perf Land is org units.
+
 ### Against Sierra Leone
 
 Sierra Leone's demo database is what `TrackerTest` runs on, and its p95 thresholds come from it.
@@ -116,14 +132,14 @@ tracked entities, AVs attribute values, ENs enrollments, EVs events and DVs data
 EIR, which `PerfLandMnchTrackerTest` reads, has the shape of the Child Programme, which
 `TrackerTest` reads: 4.4 times its children, each with 2.8 times its events.
 
+QP1613 has 69,548 relationships, Sierra Leone 35. That is why a regression since 2.43.0 shows
+here and not on Sierra Leone: each lookup of an event's relationships reads all of them, about
+100 ms per event here ([DHIS2-22452](https://dhis2.atlassian.net/browse/DHIS2-22452)).
+
 Not larger: the test now runs as one clerk with the same filters every iteration, so it reads her
 facility and searches her district, and a larger area adds records it never touches. On DHIS2
 2.42.0, adding district QP1619, 2.56 times the records, moved the load p95 of all requests from
 308-316 ms to 320-333 ms over 3 runs, while the build time and the harness's image doubled.
-
-Master is likely slower on the same records, a regression to check: on `dev`, the smoke p95 of
-the first page of tracked entities was 4.2 s on the perf runner and 4.5 s locally on 2026-11-10,
-against 0.4 s locally on 2.42.0. Running 43 the same way tells whether 43 or master made it.
 
 ## Publish
 

@@ -89,18 +89,29 @@ explain databases/mnch/mnch.toml` lists the fields each stage fills.
 ### Against Sierra Leone
 
 Sierra Leone's demo database is what `TrackerTest` runs on, and its p95 thresholds come from it.
-Tracked entities, and the rest per tracked entity, of QP1613 and of Sierra Leone's `dev` dump of
-2026-08-12:
+QP1613 against Sierra Leone's `dev` dump of 2026-08-12, whose totals include four programs of 56
+tracked entities in all. TEs are tracked entities, AVs attribute values, ENs enrollments, EVs
+events and DVs data values.
 
-| program | tracked entities | enrollments | events | data values |
-|---|---|---|---|---|
-| ANC | 71,299 | 1.18 | 23.9 | 242 |
-| EIR | 83,258 | 1 | 5.5 | 24 |
-| **QP1613** | **154,557** | **1.08** | **14.0** | **125** |
-| Child Programme | 19,029 | 1 | 2.0 | 17 |
-| WHO RMNCH Tracker | 4,009 | 1 | 4.5 | 61 |
-| TB program | 50,026 | 1 | 0 | 0 |
-| **Sierra Leone** | **73,120** | **1** | **0.76** | **7.7** |
+| database | program | TEs | AVs | ENs | EVs | DVs |
+|---|---|---|---|---|---|---|
+| Perf Land QP1613 | ANC | 71,299 | 477,760 | 84,270 | 1,705,156 | 17,265,012 |
+| Perf Land QP1613 | EIR | 83,258 | 794,004 | 83,258 | 461,915 | 2,039,597 |
+| Perf Land QP1613 | **all** | **154,557** | **1,271,764** | **167,528** | **2,167,071** | **19,304,609** |
+| Sierra Leone | Child Programme | 19,029 | 57,089 | 19,030 | 37,642 | 318,812 |
+| Sierra Leone | WHO RMNCH Tracker | 4,009 | 12,073 | 4,010 | 17,991 | 243,741 |
+| Sierra Leone | TB program | 50,026 | 1,000,195 | 50,028 | 49 | 104 |
+| Sierra Leone | **all** | **73,120** | **1,069,717** | **73,125** | **55,777** | **563,487** |
+
+| database | program | TE : EN : EV : DV | AVs per TE | EVs per EN | DVs per EV |
+|---|---|---|---|---|---|
+| Perf Land QP1613 | ANC | 1 : 1.18 : 23.9 : 242 | 6.7 | 20.2 | 10.1 |
+| Perf Land QP1613 | EIR | 1 : 1 : 5.5 : 24 | 9.5 | 5.5 | 4.4 |
+| Perf Land QP1613 | **all** | **1 : 1.08 : 14.0 : 125** | **8.2** | **12.9** | **8.9** |
+| Sierra Leone | Child Programme | 1 : 1 : 2.0 : 17 | 3.0 | 2.0 | 8.5 |
+| Sierra Leone | WHO RMNCH Tracker | 1 : 1 : 4.5 : 61 | 3.0 | 4.5 | 13.5 |
+| Sierra Leone | TB program | 1 : 1 : 0.001 : 0.002 | 20.0 | 0.001 | 2.1 |
+| Sierra Leone | **all** | **1 : 1 : 0.76 : 7.7** | **14.6** | **0.76** | **10.1** |
 
 EIR, which `PerfLandMnchTrackerTest` reads, has the shape of the Child Programme, which
 `TrackerTest` reads: 4.4 times its children, each with 2.8 times its events.

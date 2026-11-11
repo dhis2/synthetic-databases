@@ -91,17 +91,19 @@ explain databases/mnch/mnch.toml` lists the fields each stage fills.
 Sierra Leone's demo database is what `TrackerTest` runs on, and its p95 thresholds come from it.
 QP1613 against Sierra Leone's `dev` dump of 2026-08-12. Sierra Leone's "all" rows also count four
 tracker programs too small for a row of their own, such as its malaria investigations. TEs are
-tracked entities, AVs attribute values, ENs enrollments, EVs events and DVs data values.
+tracked entities, AVs attribute values, ENs enrollments, EVs events, DVs data values and RELs
+relationships. RELs are in the "all" rows only: a relationship can link tracked entities of two
+programs, as a mother in ANC to her child in EIR.
 
-| database | program | TEs | AVs | ENs | EVs | DVs |
-|---|---|---|---|---|---|---|
-| Perf Land QP1613 | ANC | 71,299 | 477,760 | 84,270 | 1,705,156 | 17,265,012 |
-| Perf Land QP1613 | EIR | 83,258 | 794,004 | 83,258 | 461,915 | 2,039,597 |
-| Perf Land QP1613 | **all** | **154,557** | **1,271,764** | **167,528** | **2,167,071** | **19,304,609** |
-| Sierra Leone | Child Programme | 19,029 | 57,089 | 19,030 | 37,642 | 318,812 |
-| Sierra Leone | WHO RMNCH Tracker | 4,009 | 12,073 | 4,010 | 17,991 | 243,741 |
-| Sierra Leone | TB program | 50,026 | 1,000,195 | 50,028 | 49 | 104 |
-| Sierra Leone | **all** | **73,120** | **1,069,717** | **73,125** | **55,777** | **563,487** |
+| database | program | TEs | AVs | ENs | EVs | DVs | RELs |
+|---|---|---|---|---|---|---|---|
+| Perf Land QP1613 | ANC | 71,299 | 477,760 | 84,270 | 1,705,156 | 17,265,012 | |
+| Perf Land QP1613 | EIR | 83,258 | 794,004 | 83,258 | 461,915 | 2,039,597 | |
+| Perf Land QP1613 | **all** | **154,557** | **1,271,764** | **167,528** | **2,167,071** | **19,304,609** | **69,548** |
+| Sierra Leone | Child Programme | 19,029 | 57,089 | 19,030 | 37,642 | 318,812 | |
+| Sierra Leone | WHO RMNCH Tracker | 4,009 | 12,073 | 4,010 | 17,991 | 243,741 | |
+| Sierra Leone | TB program | 50,026 | 1,000,195 | 50,028 | 49 | 104 | |
+| Sierra Leone | **all** | **73,120** | **1,069,717** | **73,125** | **55,777** | **563,487** | **35** |
 
 | database | program | TE : EN : EV : DV | AVs per TE | EVs per EN | DVs per EV |
 |---|---|---|---|---|---|
@@ -115,10 +117,6 @@ tracked entities, AVs attribute values, ENs enrollments, EVs events and DVs data
 
 EIR, which `PerfLandMnchTrackerTest` reads, has the shape of the Child Programme, which
 `TrackerTest` reads: 4.4 times its children, each with 2.8 times its events.
-
-QP1613 has 69,548 relationships, Sierra Leone 35. That is why a regression since 2.43.0 shows
-here and not on Sierra Leone: each lookup of an event's relationships reads all of them, about
-100 ms per event here ([DHIS2-22452](https://dhis2.atlassian.net/browse/DHIS2-22452)).
 
 Not larger: the test now runs as one clerk with the same filters every iteration, so it reads her
 facility and searches her district, and a larger area adds records it never touches. On DHIS2

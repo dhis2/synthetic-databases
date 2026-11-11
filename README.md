@@ -125,10 +125,6 @@ facility and searches her district, and a larger area adds records it never touc
 
 ### Limitations
 
-The records are a registry in use, without its history. A request that filters on what they lack
-reads empty or uniform data, and Postgres may plan it otherwise than in production.
-
-* Only the area has records: the rest of Perf Land is org units.
 * Tracker programs only: there are no single events.
 * Nothing is deleted: no tracked entity, enrollment, event or relationship.
 * No tracked entity is inactive or a potential duplicate.

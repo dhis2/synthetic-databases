@@ -1,3 +1,5 @@
+import pytest
+
 from pipeline import publish
 
 POSTGRES = "ghcr.io/baosystems/postgis:16-3.5@sha256:" + "p" * 64
@@ -38,3 +40,23 @@ def test_metadata_leaves_out_what_is_unknown():
     fields = publish.metadata(record({}, None), "c" * 40, {})
 
     assert fields.keys() == {"saved_by", "sha256", "orgunit_code", "postgres_image"}
+
+
+def test_a_candidate_publishes_each_version_as_its_rc():
+    assert publish.published_name("43", candidate=True) == "43-rc"
+    assert publish.published_name("43", candidate=False) == "43"
+
+
+@pytest.mark.parametrize(
+    ("unpinned", "tag", "candidate", "refused"),
+    [
+        (False, None, False, True),
+        (False, "v0.1.0", False, False),
+        (False, None, True, False),
+        (True, None, False, False),
+    ],
+)
+def test_only_a_release_needs_a_tag(unpinned, tag, candidate, refused):
+    problem = publish.tag_problem(unpinned, tag, candidate)
+
+    assert (problem is not None) == refused

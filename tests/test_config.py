@@ -40,6 +40,10 @@ def test_the_lock_lists_a_tree_from_the_base():
             "which is unpinned",
         ),
         ({"4 3": {"from": "42.0", "dhis2": "core:43" + DIGEST}}, "a version is letters"),
+        (
+            {"44.0-rc": {"from": "42.0", "dhis2": "core:44.0-rc" + DIGEST}},
+            "Add 44.0 and publish its candidate, 44.0-rc: dispatch release.yml from main",
+        ),
     ],
 )
 def test_the_lock_fails_on_a_version_it_cannot_upgrade_to(versions, error):

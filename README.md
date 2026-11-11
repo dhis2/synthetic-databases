@@ -126,7 +126,7 @@ facility and searches her district, and a larger area adds records it never touc
 ### Limitations
 
 * Tracker programs only: there are no single events.
-* Nothing is deleted: no tracked entity, enrollment, event or relationship.
+* Nothing is soft deleted.
 * No tracked entity is inactive or a potential duplicate.
 * Every EIR enrollment is ACTIVE, ANC's 40% ACTIVE and 60% COMPLETED (`mnch.toml`). None is
   CANCELLED.

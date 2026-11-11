@@ -121,6 +121,10 @@ facility and searches her district, and a larger area adds records it never touc
 2.42.0, adding district QP1619, 2.56 times the records, moved the load p95 of all requests from
 308-316 ms to 320-333 ms over 3 runs, while the build time and the harness's image doubled.
 
+Master is likely slower on the same records, a regression to check: on `dev`, the smoke p95 of
+the first page of tracked entities was 4.2 s on the perf runner and 4.5 s locally on 2026-11-10,
+against 0.4 s locally on 2.42.0. Running 43 the same way tells whether 43 or master made it.
+
 ## Publish
 
 Two workflows publish, from `main`:

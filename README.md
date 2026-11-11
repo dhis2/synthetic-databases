@@ -86,22 +86,6 @@ superuser stays `admin` with `district`.
 `dbgen areas databases/mnch/mnch.toml` estimates the records of every other area, and `dbgen
 explain databases/mnch/mnch.toml` lists the fields each stage fills.
 
-### Limitations
-
-The records are a registry in use, without its history. A request that filters on what they lack
-reads empty or uniform data, and Postgres may plan it otherwise than in production.
-
-* Nothing is deleted: no tracked entity, enrollment, event or relationship.
-* Every EIR enrollment is ACTIVE, ANC's 40% ACTIVE and 60% COMPLETED (`mnch.toml`). None is
-  CANCELLED.
-* Events are COMPLETED, SCHEDULE or SKIPPED, the last only in ANC. None is ACTIVE, OVERDUE or
-  VISITED.
-* Tracker programs only: there are no single events.
-* No notes, inactive tracked entities or potential duplicates.
-* Relationships are mother and child only, between tracked entities. None links an event or an
-  enrollment.
-* Only the area has records: the rest of Perf Land is org units.
-
 ### Against Sierra Leone
 
 Sierra Leone's demo database is what `TrackerTest` runs on, and its p95 thresholds come from it.
@@ -140,6 +124,23 @@ Not larger: the test now runs as one clerk with the same filters every iteration
 facility and searches her district, and a larger area adds records it never touches. On DHIS2
 2.42.0, adding district QP1619, 2.56 times the records, moved the load p95 of all requests from
 308-316 ms to 320-333 ms over 3 runs, while the build time and the harness's image doubled.
+
+### Limitations
+
+The records are a registry in use, without its history. A request that filters on what they lack
+reads empty or uniform data, and Postgres may plan it otherwise than in production.
+
+* Only the area has records: the rest of Perf Land is org units.
+* Tracker programs only: there are no single events.
+* Nothing is deleted: no tracked entity, enrollment, event or relationship.
+* No tracked entity is inactive or a potential duplicate.
+* Every EIR enrollment is ACTIVE, ANC's 40% ACTIVE and 60% COMPLETED (`mnch.toml`). None is
+  CANCELLED.
+* Events are COMPLETED, SCHEDULE or SKIPPED, the last only in ANC. None is ACTIVE, OVERDUE or
+  VISITED.
+* No enrollment or event has notes.
+* Relationships are mother and child only, between tracked entities. None links an event or an
+  enrollment.
 
 ## Publish
 

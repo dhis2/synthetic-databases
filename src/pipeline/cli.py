@@ -13,6 +13,7 @@ examples:
   pipeline release mnch --test    as CI: the ward, built, upgraded and checked
   pipeline release mnch           build, upgrade and check every version of a release
   pipeline publish mnch --dry-run
+  pipeline publish mnch --candidate  a release candidate, each version as rc-<version>
   pipeline dev mnch               the 43 in output/ upgraded to dev, checked
   pipeline dev mnch --if-changed  the same, only if the published dev is out of date
   pipeline upgrade mnch 43.0
@@ -102,6 +103,11 @@ def main(argv: list[str] | None = None) -> None:
         action="store_true",
         help="say what would be uploaded and refused, upload nothing",
     )
+    p.add_argument(
+        "--candidate",
+        action="store_true",
+        help="publish each version as rc-<version>, a release candidate, from any commit",
+    )
     p.set_defaults(func=cmd_publish)
 
     args = parser.parse_args(argv)
@@ -178,7 +184,7 @@ def cmd_publish(args: argparse.Namespace, db: Database) -> None:
     from pipeline import publish
 
     names = args.versions or [v.name for v in lock().release()]
-    publish.run(db, names, dry_run=args.dry_run)
+    publish.run(db, names, dry_run=args.dry_run, candidate=args.candidate)
 
 
 if __name__ == "__main__":

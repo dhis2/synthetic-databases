@@ -1,17 +1,20 @@
 # A release, on a tag: build the release area at 42.0, upgrade it to each version, check every
-# version and publish them all, or none. Then run core's perf tests on each from the bucket.
+# version and publish them all, or none. Then, optionally, dispatch core's perf tests on each.
 #
-# Dispatched from a branch, it is a dry run: the same build, upgrades and checks, then publish
-# --dry-run, which shows what it would upload and why it would refuse. No upload, no perf tests.
+# Dispatched from main, a release candidate: the same, published as rc-<version>, such as
+# s3://databases.dhis2.org/perfland-mnch/rc-43/, never under a release's names, and without perf
+# tests. Core's harness runs one as DB_VERSION=rc-43. Dispatched from another branch, a dry run:
+# the same build, upgrades and checks, then publish --dry-run, and nothing uploaded.
 #
-# Needs, of the organization and this repository:
-# * variable PUBLISH set to true, once the secrets below are set: without it a tag runs the dry
-#   run, with a warning, and dispatches no perf tests
-# * secrets PERF_DATABASES_AWS_ACCESS_KEY_ID and PERF_DATABASES_AWS_SECRET_ACCESS_KEY, allowed
-#   s3:PutObject under s3://databases.dhis2.org/perfland-mnch/
-# * for the perf tests: variable CORE_PERF_TESTS set to true, secret CORE_PERF_TESTS_TOKEN allowed
-#   to run workflows of dhis2/dhis2-core, and optionally variable CORE_PERF_TESTS_REF, the ref of
-#   core's perf tests (default: master)
+# Three jobs: build makes and checks the versions, and hands them to publish as an artifact. Only
+# publish holds the environment publish, which deploys from main and tags v* only, and whose
+# variable AWS_ROLE_ARN is the role it assumes to upload: no code of the build runs while the job
+# can assume it. A failed upload is re-run alone, from the artifact.
+#
+# Core's perf tests, a tag's only, need variable CORE_PERF_TESTS set to true, secret
+# CORE_PERF_TESTS_TOKEN allowed to run workflows of dhis2/dhis2-core, and optionally variable
+# CORE_PERF_TESTS_REF, the ref of core's perf tests (default: master). They are dispatched, not
+# awaited: a perf test measures DHIS2, and fails for reasons the release can't fix.
 name: Release
 
 on:
@@ -29,7 +32,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  build:
     # A standard runner of a public repository: 4 CPUs and 16 GB, with the caps of ci.yml's
     # release-test. Its disk holds the release with room to spare; disk.log shows the peak.
     runs-on: ubuntu-24.04
@@ -50,6 +53,15 @@ jobs:
         with:
           fetch-depth: 0 # the tag, which publish requires at HEAD
           persist-credentials: false
+      - name: A release's tag is on main
+        # A tag can point at any commit: publish only what was merged.
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          git fetch --quiet --no-tags origin main
+          if ! git merge-base --is-ancestor HEAD FETCH_HEAD; then
+            echo "::error::$GITHUB_REF_NAME is not on main: tag a commit of main"
+            exit 1
+          fi
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           # Exact, so CI changes only by a commit; within pyproject.toml's required-version.
@@ -68,6 +80,13 @@ jobs:
       - run: uv sync --locked
       - name: Build, upgrade and check 42.0, 42, 43.0 and 43
         run: uv run pipeline release mnch
+      - name: Show what publish would upload and refuse
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            uv run pipeline publish mnch --dry-run
+          else
+            uv run pipeline publish mnch --candidate --dry-run
+          fi
       - name: Upload the manifests and DHIS2's logs
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -77,25 +96,17 @@ jobs:
             output/publish/**/manifest.json
             output/logs/
           if-no-files-found: ignore
-      - name: Show what a release would publish
-        if: ${{ !startsWith(github.ref, 'refs/tags/') || vars.PUBLISH != 'true' }}
-        run: |
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            echo "::warning::variable PUBLISH is not true: a dry run, nothing published"
-          fi
-          uv run pipeline publish mnch --dry-run
-      - name: Publish
-        if: startsWith(github.ref, 'refs/tags/') && vars.PUBLISH == 'true'
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.PERF_DATABASES_AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.PERF_DATABASES_AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: eu-west-1
-        run: |
-          if [ -z "$AWS_ACCESS_KEY_ID" ]; then
-            echo "::error::secret PERF_DATABASES_AWS_ACCESS_KEY_ID is not set"
-            exit 1
-          fi
-          uv run pipeline publish mnch
+      - name: Upload the versions for publish
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-dumps
+          path: output/publish/perfland-mnch/
+          if-no-files-found: error
+          # The dumps are gzipped already.
+          compression-level: 0
+          # Only for this run's publish, or a re-run of it.
+          retention-days: 1
       - name: The DHIS2 image each version was checked with, by digest
         id: images
         # From the manifests, for the perf tests: a tag such as dhis2/core:43 moves with each patch,
@@ -108,25 +119,59 @@ jobs:
           echo "versions=$(jq --compact-output keys_unsorted <<< "$images")" >> "$GITHUB_OUTPUT"
           jq . <<< "$images"
 
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: publish
+    permissions:
+      contents: read
+      id-token: write # the OIDC token the role is assumed with
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the tag, which publish requires at HEAD
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.7"
+      - run: uv sync --locked --no-dev
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-dumps
+          path: output/publish/perfland-mnch
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Publish the release, or from main its candidate
+        # publish checks each dump against its manifest, its check, and that it was made by this
+        # commit from a clean tree; a release's from a tag.
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            uv run --no-sync pipeline publish mnch
+          else
+            uv run --no-sync pipeline publish mnch --candidate
+          fi
+
   # Core's perf tests run only in dhis2/dhis2-core, on its perf runner: dispatch them there, one
   # smoke run per version, as a consumer restores the published dump.
   perf-tests:
-    needs: release
-    if: >-
-      startsWith(github.ref, 'refs/tags/') && vars.PUBLISH == 'true'
-      && vars.CORE_PERF_TESTS == 'true'
+    needs: [build, publish]
+    if: startsWith(github.ref, 'refs/tags/') && vars.CORE_PERF_TESTS == 'true'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        version: ${{ fromJSON(needs.release.outputs.versions) }}
+        version: ${{ fromJSON(needs.build.outputs.versions) }}
     steps:
       - name: Run PerfLandMnchTrackerTest's smoke profile in dhis2/dhis2-core
         env:
           GH_TOKEN: ${{ secrets.CORE_PERF_TESTS_TOKEN }}
           REF: ${{ vars.CORE_PERF_TESTS_REF || 'master' }}
           VERSION: ${{ matrix.version }}
-          IMAGE: ${{ fromJSON(needs.release.outputs.images)[matrix.version] }}
+          IMAGE: ${{ fromJSON(needs.build.outputs.images)[matrix.version] }}
         run: |
           gh workflow run performance-tests.yml --repo dhis2/dhis2-core \
             --field perf_tests_git_ref="$REF" \

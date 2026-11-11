@@ -131,7 +131,9 @@ Two workflows publish, from `main`:
 
 * **A release**, `release.yml` on a tag `vX.Y.Z`: builds the district, upgrades and checks every
   version but `dev`, and uploads them all or none. Then, with the variable `CORE_PERF_TESTS`, it
-  runs core's perf tests on them.
+  dispatches core's perf tests on them, without waiting for them: a perf test measures DHIS2.
+  Dispatched from `main`, a release candidate: the same, uploaded as `rc-<version>`, such as
+  `rc-43`, which core's harness runs as `DB_VERSION=rc-43`.
 * **Dev**, `dev.yml` daily and by hand: builds the district, upgrades it to `43` and on to
   `dhis2/core-dev:latest`, checks it and uploads it as `dev`, only when `dev` is out of date: DHIS2
   master changed its migrations, or `main` moved. A failure of the upgrade to `dev` is a migration
@@ -150,8 +152,8 @@ bucket's role.
 pull request and a release: a patch or major can come with migration notes that ask for checks or
 fix-ups, reviewed before its dump is published.
 
-Until the variable `PUBLISH` is `true`, which waits for the bucket's credentials, a tag runs a
-dry run. `ci.yml`, on pull requests and `main`, releases the ward without upload.
+Dispatched from another branch, either workflow builds, upgrades and checks, and uploads nothing.
+`ci.yml`, on pull requests and `main`, releases the ward without upload.
 
 Release when what is published should change: a new DHIS2 patch or major (below), a dbgen bump,
 or a change of the spec, the area or an upgrade.
@@ -180,16 +182,23 @@ Then merge, and release. `dev/check.sql` holds the 2.44 notes' queries; two read
 
 ### Release
 
-Optionally, a dry run first: run `release.yml` by hand on `main` (Actions, Release, Run workflow).
-It builds, upgrades and checks the district, and shows what it would upload. Then tag `main`:
+A candidate first, which publishes every version as `rc-<version>` and leaves the release's
+untouched:
+
+```sh
+gh workflow run release.yml --repo dhis2/synthetic-databases
+```
+
+Run core's perf tests on it as on a release, with `DB_VERSION=rc-43`. Then tag `main`:
 
 ```sh
 git tag --sign --message v0.2.0 v0.2.0 main
 git push origin v0.2.0
 ```
 
-`publish` refuses without a tag at HEAD and a clean tree, and each `manifest.json` and S3 object
-records the tag, so a dump leads back to the code that made it. A failure of the runner is re-run
+`release.yml` refuses a tag that is not on `main`, `publish` a release without a tag at HEAD and a
+clean tree, and each `manifest.json` and S3 object records the tag, so a dump leads back to the
+code that made it. A failure of the runner is re-run
 on the same tag; a fix needs a new tag.
 
 ## How it works

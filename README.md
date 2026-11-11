@@ -89,9 +89,9 @@ explain databases/mnch/mnch.toml` lists the fields each stage fills.
 ### Against Sierra Leone
 
 Sierra Leone's demo database is what `TrackerTest` runs on, and its p95 thresholds come from it.
-QP1613 against Sierra Leone's `dev` dump of 2026-08-12, whose totals include four programs of 56
-tracked entities in all. TEs are tracked entities, AVs attribute values, ENs enrollments, EVs
-events and DVs data values.
+QP1613 against Sierra Leone's `dev` dump of 2026-08-12. Sierra Leone's "all" rows also count four
+tracker programs too small for a row of their own, such as its malaria investigations. TEs are
+tracked entities, AVs attribute values, ENs enrollments, EVs events and DVs data values.
 
 | database | program | TEs | AVs | ENs | EVs | DVs |
 |---|---|---|---|---|---|---|

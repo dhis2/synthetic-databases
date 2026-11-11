@@ -10,7 +10,7 @@ databases from.
 [dbgen]: https://github.com/dhis2/synthetic-db-generator
 
 > [!WARNING]
-> Nothing is published yet.
+> Only `dev` is published yet: `42.0` to `43` come with the first release.
 
 ## Perf Land MNCH
 
@@ -57,8 +57,6 @@ DHIS2_IMAGE=dhis2/core:43@sha256:5a73b9de002b06ab1a4a61674325370107d79acbaec54e0
   MVN_ARGS=-Dprofile=smoke ./run-simulation.sh
 ```
 
-`run-simulation.sh` does not take `perfland-mnch` yet: it allows `sierra-leone` and `hmis` only.
-
 Publishing overwrites a dump in place. The harness rebuilds its database image when the dump's
 ETag in S3 changes, and records it in `run-simulation.env`. The bucket keeps versions, so an
 overwrite that broke something can be rolled back.
@@ -84,6 +82,48 @@ QP0602-02. Times are of a standard GitHub runner, 4 CPUs and 16 GB, on 2026-11-0
 
 The users are made for performance testing only: their password is `Perf-Test-2026!`, and the
 superuser stays `admin` with `district`.
+
+`dbgen areas databases/mnch/mnch.toml` estimates the records of every other area, and `dbgen
+explain databases/mnch/mnch.toml` lists the fields each stage fills.
+
+### Against Sierra Leone
+
+Sierra Leone's demo database is what `TrackerTest` runs on, and its p95 thresholds come from it.
+QP1613 against Sierra Leone's `dev` dump of 2026-08-12. Sierra Leone's "all" rows also count four
+tracker programs too small for a row of their own, such as its malaria investigations. TEs are
+tracked entities, AVs attribute values, ENs enrollments, EVs events and DVs data values.
+
+| database | program | TEs | AVs | ENs | EVs | DVs |
+|---|---|---|---|---|---|---|
+| Perf Land QP1613 | ANC | 71,299 | 477,760 | 84,270 | 1,705,156 | 17,265,012 |
+| Perf Land QP1613 | EIR | 83,258 | 794,004 | 83,258 | 461,915 | 2,039,597 |
+| Perf Land QP1613 | **all** | **154,557** | **1,271,764** | **167,528** | **2,167,071** | **19,304,609** |
+| Sierra Leone | Child Programme | 19,029 | 57,089 | 19,030 | 37,642 | 318,812 |
+| Sierra Leone | WHO RMNCH Tracker | 4,009 | 12,073 | 4,010 | 17,991 | 243,741 |
+| Sierra Leone | TB program | 50,026 | 1,000,195 | 50,028 | 49 | 104 |
+| Sierra Leone | **all** | **73,120** | **1,069,717** | **73,125** | **55,777** | **563,487** |
+
+| database | program | TE : EN : EV : DV | AVs per TE | EVs per EN | DVs per EV |
+|---|---|---|---|---|---|
+| Perf Land QP1613 | ANC | 1 : 1.18 : 23.9 : 242 | 6.7 | 20.2 | 10.1 |
+| Perf Land QP1613 | EIR | 1 : 1 : 5.5 : 24 | 9.5 | 5.5 | 4.4 |
+| Perf Land QP1613 | **all** | **1 : 1.08 : 14.0 : 125** | **8.2** | **12.9** | **8.9** |
+| Sierra Leone | Child Programme | 1 : 1 : 2.0 : 17 | 3.0 | 2.0 | 8.5 |
+| Sierra Leone | WHO RMNCH Tracker | 1 : 1 : 4.5 : 61 | 3.0 | 4.5 | 13.5 |
+| Sierra Leone | TB program | 1 : 1 : 0.001 : 0.002 | 20.0 | 0.001 | 2.1 |
+| Sierra Leone | **all** | **1 : 1 : 0.76 : 7.7** | **14.6** | **0.76** | **10.1** |
+
+EIR, which `PerfLandMnchTrackerTest` reads, has the shape of the Child Programme, which
+`TrackerTest` reads: 4.4 times its children, each with 2.8 times its events.
+
+Not larger: the test now runs as one clerk with the same filters every iteration, so it reads her
+facility and searches her district, and a larger area adds records it never touches. On DHIS2
+2.42.0, adding district QP1619, 2.56 times the records, moved the load p95 of all requests from
+308-316 ms to 320-333 ms over 3 runs, while the build time and the harness's image doubled.
+
+Master is likely slower on the same records, a regression to check: on `dev`, the smoke p95 of
+the first page of tracked entities was 4.2 s on the perf runner and 4.5 s locally on 2026-11-10,
+against 0.4 s locally on 2.42.0. Running 43 the same way tells whether 43 or master made it.
 
 ## Publish
 

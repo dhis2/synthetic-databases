@@ -91,17 +91,19 @@ explain databases/mnch/mnch.toml` lists the fields each stage fills.
 Sierra Leone's demo database is what `TrackerTest` runs on, and its p95 thresholds come from it.
 QP1613 against Sierra Leone's `dev` dump of 2026-08-12. Sierra Leone's "all" rows also count four
 tracker programs too small for a row of their own, such as its malaria investigations. TEs are
-tracked entities, AVs attribute values, ENs enrollments, EVs events and DVs data values.
+tracked entities, AVs attribute values, ENs enrollments, EVs events, DVs data values and RELs
+relationships. RELs are in the "all" rows only: a relationship can link tracked entities of two
+programs, as a mother in ANC to her child in EIR.
 
-| database | program | TEs | AVs | ENs | EVs | DVs |
-|---|---|---|---|---|---|---|
-| Perf Land QP1613 | ANC | 71,299 | 477,760 | 84,270 | 1,705,156 | 17,265,012 |
-| Perf Land QP1613 | EIR | 83,258 | 794,004 | 83,258 | 461,915 | 2,039,597 |
-| Perf Land QP1613 | **all** | **154,557** | **1,271,764** | **167,528** | **2,167,071** | **19,304,609** |
-| Sierra Leone | Child Programme | 19,029 | 57,089 | 19,030 | 37,642 | 318,812 |
-| Sierra Leone | WHO RMNCH Tracker | 4,009 | 12,073 | 4,010 | 17,991 | 243,741 |
-| Sierra Leone | TB program | 50,026 | 1,000,195 | 50,028 | 49 | 104 |
-| Sierra Leone | **all** | **73,120** | **1,069,717** | **73,125** | **55,777** | **563,487** |
+| database | program | TEs | AVs | ENs | EVs | DVs | RELs |
+|---|---|---|---|---|---|---|---|
+| Perf Land QP1613 | ANC | 71,299 | 477,760 | 84,270 | 1,705,156 | 17,265,012 | |
+| Perf Land QP1613 | EIR | 83,258 | 794,004 | 83,258 | 461,915 | 2,039,597 | |
+| Perf Land QP1613 | **all** | **154,557** | **1,271,764** | **167,528** | **2,167,071** | **19,304,609** | **69,548** |
+| Sierra Leone | Child Programme | 19,029 | 57,089 | 19,030 | 37,642 | 318,812 | |
+| Sierra Leone | WHO RMNCH Tracker | 4,009 | 12,073 | 4,010 | 17,991 | 243,741 | |
+| Sierra Leone | TB program | 50,026 | 1,000,195 | 50,028 | 49 | 104 | |
+| Sierra Leone | **all** | **73,120** | **1,069,717** | **73,125** | **55,777** | **563,487** | **35** |
 
 | database | program | TE : EN : EV : DV | AVs per TE | EVs per EN | DVs per EV |
 |---|---|---|---|---|---|
@@ -121,9 +123,18 @@ facility and searches her district, and a larger area adds records it never touc
 2.42.0, adding district QP1619, 2.56 times the records, moved the load p95 of all requests from
 308-316 ms to 320-333 ms over 3 runs, while the build time and the harness's image doubled.
 
-Master is likely slower on the same records, a regression to check: on `dev`, the smoke p95 of
-the first page of tracked entities was 4.2 s on the perf runner and 4.5 s locally on 2026-11-10,
-against 0.4 s locally on 2.42.0. Running 43 the same way tells whether 43 or master made it.
+### Limitations
+
+* Tracker programs only: there are no single events.
+* Nothing is soft deleted.
+* No tracked entity is inactive or a potential duplicate.
+* Every EIR enrollment is ACTIVE, ANC's 40% ACTIVE and 60% COMPLETED (`mnch.toml`). None is
+  CANCELLED.
+* Events are COMPLETED, SCHEDULE or SKIPPED, the last only in ANC. None is ACTIVE, OVERDUE or
+  VISITED.
+* No enrollment or event has notes.
+* Relationships are mother and child only, between tracked entities. None links an event or an
+  enrollment.
 
 ## Publish
 

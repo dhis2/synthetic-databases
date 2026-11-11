@@ -24,7 +24,8 @@ from pipeline.errors import CheckFailed, UsageError
 
 REPOSITORY = "dhis2/synthetic-databases"
 # The prefix of a release candidate's versions in the bucket, such as rc-43: a prefix rather than
-# a suffix, so a lifecycle rule on perfland-mnch/rc- expires them.
+# a suffix, so candidates list apart from releases, and a lifecycle rule on perfland-mnch/rc- could
+# expire them.
 CANDIDATE = "rc-"
 
 

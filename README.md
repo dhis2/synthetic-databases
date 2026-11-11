@@ -10,7 +10,7 @@ databases from.
 [dbgen]: https://github.com/dhis2/synthetic-db-generator
 
 > [!WARNING]
-> Nothing is published yet.
+> Only `dev` is published yet: `42.0` to `43` come with the first release.
 
 ## Perf Land MNCH
 
@@ -57,8 +57,6 @@ DHIS2_IMAGE=dhis2/core:43@sha256:5a73b9de002b06ab1a4a61674325370107d79acbaec54e0
   MVN_ARGS=-Dprofile=smoke ./run-simulation.sh
 ```
 
-`run-simulation.sh` does not take `perfland-mnch` yet: it allows `sierra-leone` and `hmis` only.
-
 Publishing overwrites a dump in place. The harness rebuilds its database image when the dump's
 ETag in S3 changes, and records it in `run-simulation.env`. The bucket keeps versions, so an
 overwrite that broke something can be rolled back.
@@ -84,6 +82,60 @@ QP0602-02. Times are of a standard GitHub runner, 4 CPUs and 16 GB, on 2026-11-0
 
 The users are made for performance testing only: their password is `Perf-Test-2026!`, and the
 superuser stays `admin` with `district`.
+
+`dbgen areas databases/mnch/mnch.toml` estimates the records of every other area, and `dbgen
+explain databases/mnch/mnch.toml` lists the fields each stage fills.
+
+### Against Sierra Leone
+
+Sierra Leone's demo database is what core's `TrackerTest` runs on, and the p95 thresholds of the
+tracker tests are calibrated on it. QP1613 was chosen to hold more: 2.1 times its tracked
+entities, 2.3 times its enrollments and 39 times its tracker events.
+
+QP1613 is counted from its build (dbgen `ff7653e`), the same records in every version. Sierra
+Leone's tracker programs are counted from its `dev` dump of 2026-08-12 (DHIS2 2.43), without the
+rows marked deleted; its four programs of fewer than 40 tracked entities are left out of the rows
+but not of the total, which counts the one tracked entity enrolled in two programs once. TEs are
+tracked entities, AVs attribute values, ENs enrollments, EVs events and DVs data values.
+
+| program | TEs | AVs | ENs | EVs | DVs |
+|---|---|---|---|---|---|
+| ANC | 71,299 | 477,760 | 84,270 | 1,705,156 | 17,265,012 |
+| EIR | 83,258 | 794,004 | 83,258 | 461,915 | 2,039,597 |
+| **QP1613** | **154,557** | **1,271,764** | **167,528** | **2,167,071** | **19,304,609** |
+| Sierra Leone Child Programme | 19,029 | 57,089 | 19,030 | 37,642 | 318,812 |
+| Sierra Leone WHO RMNCH Tracker | 4,009 | 12,073 | 4,010 | 17,991 | 243,741 |
+| Sierra Leone TB program | 50,026 | 1,000,195 | 50,028 | 49 | 104 |
+| **Sierra Leone** | **73,120** | **1,069,717** | **73,125** | **55,777** | **563,487** |
+
+The same per tracked entity:
+
+| program | TE : EN : EV : DV | AVs per TE | EVs per EN | DVs per EV |
+|---|---|---|---|---|
+| ANC | 1 : 1.18 : 23.9 : 242 | 6.7 | 20.2 | 10.1 |
+| EIR | 1 : 1 : 5.5 : 24 | 9.5 | 5.5 | 4.4 |
+| **QP1613** | **1 : 1.08 : 14.0 : 125** | **8.2** | **12.9** | **8.9** |
+| Sierra Leone Child Programme | 1 : 1 : 2.0 : 17 | 3.0 | 2.0 | 8.5 |
+| Sierra Leone WHO RMNCH Tracker | 1 : 1 : 4.5 : 61 | 3.0 | 4.5 | 13.5 |
+| Sierra Leone TB program | 1 : 1 : 0.001 : 0.002 | 20.0 | 0.001 | 2.1 |
+| **Sierra Leone** | **1 : 1 : 0.76 : 7.7** | **14.6** | **0.76** | **10.1** |
+
+* EIR is the program `PerfLandMnchTrackerTest` reads, shaped as Sierra Leone's Child Programme,
+  which `TrackerTest` reads: a child with a birth stage. It holds 4.4 times its children, each
+  with 2.8 times its events.
+* ANC is the deepest: a woman has 1.18 pregnancies, a pregnancy 20 events, as each contact records
+  several stages. It holds 79% of the events and 89% of the data values.
+* Sierra Leone's tracked entities are mostly TB's: 50,026 of 73,120, with 1.0 million of its 1.07
+  million attribute values and 49 events. Its records are wide and shallow, QP1613's deep.
+* Each of the 69,548 relationships links an EIR child to its mother in ANC: 84% of the children
+  have one. Sierra Leone has 35.
+* Sierra Leone also has 317,807 single events, in its event programs; Perf Land has no event
+  program.
+
+Not larger: the perf test reads one clerk's facility, which a larger area holds unchanged. Built
+together with district QP1619, 396,000 tracked entities and 2.56 times the records, most load
+p95s on DHIS2 2.42.0 moved within noise, while the build took twice as long and the harness's
+image grew from 8.2 to 15.8 GB. The size is revisited once the test reads across facilities.
 
 ## Publish
 

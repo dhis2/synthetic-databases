@@ -116,8 +116,10 @@ tracked entities, AVs attribute values, ENs enrollments, EVs events and DVs data
 EIR, which `PerfLandMnchTrackerTest` reads, has the shape of the Child Programme, which
 `TrackerTest` reads: 4.4 times its children, each with 2.8 times its events.
 
-Not larger, as the test reads one clerk's facility: with district QP1619 added, 2.56 times the
-records, most p95s stayed within noise and the harness's image doubled.
+Not larger: the test now runs as one clerk with the same filters every iteration, so it reads her
+facility and searches her district, and a larger area adds records it never touches. On DHIS2
+2.42.0, adding district QP1619, 2.56 times the records, moved the load p95 of all requests from
+308-316 ms to 320-333 ms over 3 runs, while the build time and the harness's image doubled.
 
 ## Publish
 

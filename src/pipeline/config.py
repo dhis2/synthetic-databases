@@ -33,6 +33,10 @@ BUCKET = "databases.dhis2.org"
 # A version as core's harness takes DB_VERSION: alphanumerics, dots, hyphens and underscores.
 VERSION = re.compile(r"[A-Za-z0-9._-]+")
 FIXUPS = ("check.sql", "pre.sql", "post.sql")
+# The suffix of a release candidate's versions in the bucket, such as 43-rc for 43, as semver
+# marks a pre-release. No version of lock.toml ends in it, so a candidate's folder is never a
+# version's.
+CANDIDATE = "-rc"
 
 
 @dataclass(frozen=True)
@@ -128,6 +132,13 @@ def parse_lock(data: dict) -> Lock:
         where = f'lock.toml [versions."{name}"]'
         if not VERSION.fullmatch(name):
             raise UsageError(f"{where}: a version is letters, digits, '.', '-' and '_'")
+        if name.endswith(CANDIDATE):
+            version = name.removesuffix(CANDIDATE)
+            raise UsageError(
+                f"{where}: a version can't end in {CANDIDATE}, which names a release candidate. "
+                f"Add {version} and publish its candidate, {name}: dispatch release.yml from main, "
+                "or run pipeline publish --candidate"
+            )
         if name in versions:
             raise UsageError(f"{where}: {name} is the base, which dbgen builds")
         unknown = set(entry) - {"from", "dhis2", "unpinned"}

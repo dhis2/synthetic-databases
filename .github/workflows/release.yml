@@ -1,9 +1,9 @@
 # A release, on a tag: build the release area at 42.0, upgrade it to each version, check every
 # version and publish them all, or none. Then, optionally, dispatch core's perf tests on each.
 #
-# Dispatched from main, a release candidate: the same, published as rc-<version>, such as
-# s3://databases.dhis2.org/perfland-mnch/rc-43/, never under a release's names, and without perf
-# tests. Core's harness runs one as DB_VERSION=rc-43. Dispatched from another branch, a dry run:
+# Dispatched from main, a release candidate: the same, published as <version>-rc, such as
+# s3://databases.dhis2.org/perfland-mnch/43-rc/, never under a release's names, and without perf
+# tests. Core's harness runs one as DB_VERSION=43-rc. Dispatched from another branch, a dry run:
 # the same build, upgrades and checks, then publish --dry-run, and nothing uploaded.
 #
 # Three jobs: build makes and checks the versions, and hands them to publish as an artifact. Only

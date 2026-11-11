@@ -132,8 +132,8 @@ Two workflows publish, from `main`:
 * **A release**, `release.yml` on a tag `vX.Y.Z`: builds the district, upgrades and checks every
   version but `dev`, and uploads them all or none. Then, with the variable `CORE_PERF_TESTS`, it
   dispatches core's perf tests on them, without waiting for them: a perf test measures DHIS2.
-  Dispatched from `main`, a release candidate: the same, uploaded as `rc-<version>`, such as
-  `rc-43`, which core's harness runs as `DB_VERSION=rc-43`.
+  Dispatched from `main`, a release candidate: the same, uploaded as `<version>-rc`, such as
+  `43-rc`, which core's harness runs as `DB_VERSION=43-rc`.
 * **Dev**, `dev.yml` daily and by hand: builds the district, upgrades it to `43` and on to
   `dhis2/core-dev:latest`, checks it and uploads it as `dev`, only when `dev` is out of date: DHIS2
   master changed its migrations, or `main` moved. A failure of the upgrade to `dev` is a migration
@@ -182,14 +182,14 @@ Then merge, and release. `dev/check.sql` holds the 2.44 notes' queries; two read
 
 ### Release
 
-A candidate first, which publishes every version as `rc-<version>` and leaves the release's
+A candidate first, which publishes every version as `<version>-rc` and leaves the release's
 untouched:
 
 ```sh
 gh workflow run release.yml --repo dhis2/synthetic-databases
 ```
 
-Run core's perf tests on it as on a release, with `DB_VERSION=rc-43`. Then tag `main`:
+Run core's perf tests on it as on a release, with `DB_VERSION=43-rc`. Then tag `main`:
 
 ```sh
 git tag --sign --message v0.2.0 v0.2.0 main

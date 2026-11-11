@@ -42,8 +42,8 @@ def test_metadata_leaves_out_what_is_unknown():
     assert fields.keys() == {"saved_by", "sha256", "orgunit_code", "postgres_image"}
 
 
-def test_a_candidate_publishes_each_version_under_rc():
-    assert publish.published_name("43", candidate=True) == "rc-43"
+def test_a_candidate_publishes_each_version_as_its_rc():
+    assert publish.published_name("43", candidate=True) == "43-rc"
     assert publish.published_name("43", candidate=False) == "43"
 
 

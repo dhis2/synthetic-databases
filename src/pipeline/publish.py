@@ -3,8 +3,8 @@
 Every version or none: it uploads only once each version's dump matches its manifest, passed
 its check, holds the release area and was made by this commit of the pipeline, from a clean
 tree. A release's versions are made from a tag; an unpinned one, dev, from any commit; a release
-candidate from any commit too, each version published as rc-<version>, never under a release's
-name, so core's harness runs it as DB_VERSION=rc-43.
+candidate from any commit too, each version published as <version>-rc, never under a release's
+name, so core's harness runs it as DB_VERSION=43-rc.
 
 Each dump carries in its metadata what a HEAD request on it tells without downloading it
 (metadata()); its manifest.json beside it carries none, as it holds all of it. Writes take
@@ -19,14 +19,10 @@ import sys
 from collections.abc import Mapping
 
 from pipeline import manifest, provenance
-from pipeline.config import BUCKET, Database, lock
+from pipeline.config import BUCKET, CANDIDATE, Database, lock
 from pipeline.errors import CheckFailed, UsageError
 
 REPOSITORY = "dhis2/synthetic-databases"
-# The prefix of a release candidate's versions in the bucket, such as rc-43: a prefix rather than
-# a suffix, so candidates list apart from releases, and a lifecycle rule on perfland-mnch/rc- could
-# expire them.
-CANDIDATE = "rc-"
 
 
 def run(
@@ -111,8 +107,8 @@ def run(
 
 
 def published_name(name: str, candidate: bool) -> str:
-    """The version's folder in the bucket: rc-43 for a candidate of 43."""
-    return CANDIDATE + name if candidate else name
+    """The version's folder in the bucket: 43-rc for a candidate of 43."""
+    return name + CANDIDATE if candidate else name
 
 
 def tag_problem(unpinned: bool, tag: str | None, candidate: bool) -> str | None:
@@ -120,7 +116,7 @@ def tag_problem(unpinned: bool, tag: str | None, candidate: bool) -> str | None:
     unpinned ones and a candidate's don't."""
     if unpinned or candidate or tag:
         return None
-    return "a release publishes from a tag, and no tag points at HEAD; --candidate publishes rc-"
+    return "a release publishes from a tag, and no tag points at HEAD; --candidate publishes -rc"
 
 
 def metadata(record: dict, label: str, env: Mapping[str, str] = os.environ) -> dict[str, str]:

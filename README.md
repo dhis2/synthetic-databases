@@ -135,6 +135,9 @@ measured on the `dev` dump of 2026-11-10, by changing a copy of it.
 * No tracked entity has a temporary owner (break the glass) or has changed owner, and every
   enrollment and event is in its owner's org unit. With temporary owners for 1% of the children,
   the list of active enrollments takes 2 to 3 times as long, and 3 other plans change.
+* ANC and EIR have the default category combo: every enrollment and event has the default
+  attribute option combo. Every tracker query checks the sharing of the category options of the
+  combos it reads.
 * Relationships are mother and child only, between tracked entities. None links an event or an
   enrollment.
 * Nothing is soft deleted.

@@ -135,10 +135,6 @@ measured on the `dev` dump of 2026-11-10, by changing a copy of it.
 * No tracked entity has a temporary owner (break the glass) or has changed owner, and every
   enrollment and event is in its owner's org unit. With temporary owners for 1% of the children,
   the list of active enrollments takes 2 to 3 times as long, and 3 other plans change.
-* Every EIR enrollment is ACTIVE, ANC's 40% ACTIVE and 60% COMPLETED (`mnch.toml`). None is
-  CANCELLED. Completing EIR's enrollments older than two years, 57%, changes nothing, as the
-  newest are still active; completing the same share at random makes the list of active
-  enrollments 1.5 to 3 times slower.
 * Tracker programs only: there are no single events.
 * Relationships are mother and child only, between tracked entities. None links an event or an
   enrollment.
@@ -148,6 +144,8 @@ measured on the `dev` dump of 2026-11-10, by changing a copy of it.
 * Events are COMPLETED, SCHEDULE or SKIPPED, the last only in ANC. None is ACTIVE, OVERDUE or
   VISITED, and none is scheduled after 2024.
 * A mother has one child, of her family name and facility: there are no siblings.
+* Every EIR enrollment is ACTIVE, ANC's 40% ACTIVE and 60% COMPLETED (`mnch.toml`). None is
+  CANCELLED.
 * No tracked entity is inactive or a potential duplicate.
 * No enrollment or event has notes.
 

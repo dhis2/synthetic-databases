@@ -125,16 +125,31 @@ facility and searches her district, and a larger area adds records it never touc
 
 ### Limitations
 
-* Tracker programs only: there are no single events.
-* Nothing is soft deleted.
-* No tracked entity is inactive or a potential duplicate.
+By their effect on `PerfLandMnchTrackerTest`'s queries, the largest first. The effects were
+measured on the `dev` dump of 2026-11-10, by changing a copy of it.
+
+* Every facility registers children evenly through 2020 to 2024: none starts late, closes or
+  stops using DHIS2. Lists ordered by `createdAt` walk the newest tracked entities until they find
+  the facility's: had the test's four facilities stopped a year before the newest record, the
+  walks would take 2 to 50 times as long.
+* No tracked entity has a temporary owner (break the glass) or has changed owner, and every
+  enrollment and event is in its owner's org unit. With temporary owners for 1% of the children,
+  the list of active enrollments takes 2 to 3 times as long, and 3 other plans change.
 * Every EIR enrollment is ACTIVE, ANC's 40% ACTIVE and 60% COMPLETED (`mnch.toml`). None is
-  CANCELLED.
-* Events are COMPLETED, SCHEDULE or SKIPPED, the last only in ANC. None is ACTIVE, OVERDUE or
-  VISITED.
-* No enrollment or event has notes.
+  CANCELLED. Completing EIR's enrollments older than two years, 57%, changes nothing, as the
+  newest are still active; completing the same share at random makes the list of active
+  enrollments 1.5 to 3 times slower.
+* Tracker programs only: there are no single events.
 * Relationships are mother and child only, between tracked entities. None links an event or an
   enrollment.
+* Nothing is soft deleted.
+* `created` is the clinical date: a tracked entity, its enrollment and its events are created
+  the day they happen, with no back entry from paper and no sync lag of Android.
+* Events are COMPLETED, SCHEDULE or SKIPPED, the last only in ANC. None is ACTIVE, OVERDUE or
+  VISITED, and none is scheduled after 2024.
+* A mother has one child, of her family name and facility: there are no siblings.
+* No tracked entity is inactive or a potential duplicate.
+* No enrollment or event has notes.
 
 ## Publish
 

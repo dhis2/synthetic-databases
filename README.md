@@ -123,6 +123,35 @@ facility and searches her district, and a larger area adds records it never touc
 2.42.0, adding district QP1619, 2.56 times the records, moved the load p95 of all requests from
 308-316 ms to 320-333 ms over 3 runs, while the build time and the harness's image doubled.
 
+### What the programs fill
+
+A build fills every attribute and data element the packages mark mandatory, and the optional ones
+dbgen's simulation has values for: most of each package stays empty, and an ANC event holds 10.1
+data values, an EIR event 4.4. Counted on the `dev` dump of 2026-11-10; a data element is filled
+when any event of its stage has a value for it.
+
+| program | stage | events | data elements | mandatory | filled |
+|---|---|---|---:|---:|---:|
+| ANC | Quick Check | every contact | 59 | 2 | 7 |
+| ANC | Woman's Profile and History | once | 132 | 16 | 19 |
+| ANC | Symptoms and Follow-up | every contact | 94 | 4 | 4 |
+| ANC | Physical Examinations | every contact | 69 | 5 | 12 |
+| ANC | Laboratory Tests and Imaging | every contact | 108 | 26 | 39 |
+| ANC | Counselling and Treatment | every contact | 148 | 0 | 9 |
+| ANC | Close ANC Record | once | 26 | 2 | 9 |
+| **ANC** | | | **636** | **55** | **99** |
+| EIR | Birth details | once | 9 | 0 | 7 |
+| EIR | Immunization | every visit | 92 | 0 | 19 |
+| **EIR** | | | **101** | **0** | **26** |
+
+| program | attributes | mandatory | filled | empty |
+|---|---:|---:|---:|---|
+| ANC | 17 | 4 | 7 | alternative contact's name and phone, ANC contact number, the 6 co-habitant checkboxes, wants reminders |
+| EIR | 15 | 3 | 10 | caregiver's second number, national ID, middle name, photo, village |
+
+A real instance may fill more of the optional ones, such as the 139 of Counselling and Treatment
+left empty, which makes its events larger.
+
 ### Limitations
 
 By their effect on `PerfLandMnchTrackerTest`'s queries, the largest first. The effects were

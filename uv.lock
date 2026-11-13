@@ -518,7 +518,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "isal", specifier = ">=1.8.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.0" },
-    { name = "synthetic-db-generator", git = "https://github.com/dhis2/synthetic-db-generator?rev=ff7653ece445f7f2760bca8ba94fef75a6e54404" },
+    { name = "synthetic-db-generator", git = "https://github.com/dhis2/synthetic-db-generator?rev=e165e04ab03a18dcc8fd764174a161e3a445b280" },
 ]
 
 [package.metadata.requires-dev]
@@ -531,8 +531,8 @@ dev = [
 
 [[package]]
 name = "synthetic-db-generator"
-version = "0.1.dev31"
-source = { git = "https://github.com/dhis2/synthetic-db-generator?rev=ff7653ece445f7f2760bca8ba94fef75a6e54404#ff7653ece445f7f2760bca8ba94fef75a6e54404" }
+version = "0.1.dev34"
+source = { git = "https://github.com/dhis2/synthetic-db-generator?rev=e165e04ab03a18dcc8fd764174a161e3a445b280#e165e04ab03a18dcc8fd764174a161e3a445b280" }
 dependencies = [
     { name = "duckdb" },
     { name = "httpx" },

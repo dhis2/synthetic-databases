@@ -11,7 +11,12 @@
 # enrollment's date.
 
 [build]
-metadata = ["metadata/anc.json", "metadata/eir.json", "metadata/mother-child.json"]
+metadata = [
+  "metadata/categories.json", # first: anc.json and eir.json capture with its "Projects"
+  "metadata/anc.json",
+  "metadata/eir.json",
+  "metadata/mother-child.json",
+]
 seed = 42
 start = 2020-01-01
 end = 2025-01-01

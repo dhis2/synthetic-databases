@@ -164,20 +164,21 @@ measured on the `dev` dump of 2026-11-10, by changing a copy of it.
 * No tracked entity has a temporary owner (break the glass) or has changed owner, and every
   enrollment and event is in its owner's org unit. With temporary owners for 1% of the children,
   the list of active enrollments takes 2 to 3 times as long, and 3 other plans change.
+* Every EIR enrollment is ACTIVE, ANC's 40% ACTIVE and 60% COMPLETED (`mnch.toml`). None is
+  CANCELLED. With 57% of EIR's enrollments COMPLETED at random, the list of active enrollments
+  takes 1.6 to 2.9 times as long; COMPLETED by age, before 2023, changes nothing.
 * ANC and EIR have the default category combo: every enrollment and event has the default
   attribute option combo. With a combo of two options for EIR, the Birth events of the largest
   facility take twice as long; with one option hidden from the clerk, the list of active
   enrollments takes 2 to 2.6 times as long.
+* Nothing is soft deleted.
 * Relationships are mother and child only, between tracked entities. None links an event or an
   enrollment.
-* Nothing is soft deleted.
 * `created` is the clinical date: a tracked entity, its enrollment and its events are created
   the day they happen, with no back entry from paper and no sync lag of Android.
 * Events are COMPLETED, SCHEDULE or SKIPPED, the last only in ANC. None is ACTIVE, OVERDUE or
   VISITED, and none is scheduled after 2024.
 * A mother has one child, of her family name and facility: there are no siblings.
-* Every EIR enrollment is ACTIVE, ANC's 40% ACTIVE and 60% COMPLETED (`mnch.toml`). None is
-  CANCELLED.
 * No tracked entity is inactive or a potential duplicate.
 * No enrollment or event has notes.
 * No single events, by design: MNCH's programs, the ANC and EIR packages, are tracker programs.

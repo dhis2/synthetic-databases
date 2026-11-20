@@ -152,10 +152,22 @@ when any event of its stage has a value for it.
 A real instance may fill more of the optional ones, such as the 139 of Counselling and Treatment
 left empty, which makes its events larger.
 
+### Category combos
+
+ANC and EIR capture their events with "Projects", an attribute category combo of the options A,
+B and C, one drawn uniformly per event. Beside it the database has 2,000 category option combos
+no program uses, as an instance's aggregate disaggregations have: 100 combos "Age groups NNN and
+sex" of 10 age groups and Female, Male. Every tracker query checks the sharing of the category
+options of all of them, and Postgres's estimate of that check grows with their number, which
+changes the plans it picks: with only the packages' 3 category option combos, the tracker queries
+got other plans than with 2,000. `databases/mnch/categories.py` writes them to
+`metadata/categories.json`.
+
 ### Limitations
 
-By their effect on `PerfLandMnchTrackerTest`'s queries, the largest first. The effects were
-measured on the `dev` dump of 2026-11-10, by changing a copy of it.
+By their effect on `PerfLandMnchTrackerTest`'s queries, the largest first, and last the sharing of
+category options, which we don't know instances restrict. The effects were measured on the `dev`
+dump of 2026-11-10, before the category combos, by changing a copy of it.
 
 * Every facility registers children evenly through 2020 to 2024: none starts late, closes or
   stops using DHIS2. Lists ordered by `createdAt` walk the newest tracked entities until they find
@@ -167,10 +179,6 @@ measured on the `dev` dump of 2026-11-10, by changing a copy of it.
 * Every EIR enrollment is ACTIVE, ANC's 40% ACTIVE and 60% COMPLETED (`mnch.toml`). None is
   CANCELLED. With 57% of EIR's enrollments COMPLETED at random, the list of active enrollments
   takes 1.6 to 2.9 times as long; COMPLETED by age, before 2023, changes nothing.
-* ANC and EIR have the default category combo: every enrollment and event has the default
-  attribute option combo. With a combo of two options for EIR, the Birth events of the largest
-  facility take twice as long; with one option hidden from the clerk, the list of active
-  enrollments takes 2 to 2.6 times as long.
 * Nothing is soft deleted.
 * Relationships are mother and child only, between tracked entities. None links an event or an
   enrollment.
@@ -182,6 +190,12 @@ measured on the `dev` dump of 2026-11-10, by changing a copy of it.
 * No tracked entity is inactive or a potential duplicate.
 * No enrollment or event has notes.
 * No single events, by design: MNCH's programs, the ANC and EIR packages, are tracker programs.
+* Every category option is readable by everyone. An instance may share a project's options with
+  some user groups only, which makes the sharing check of every tracker query hide records: with
+  half of EIR's enrollments and events in a project hidden from the clerk, the list of active
+  enrollments takes 2 to 2.6 times as long. Only then do two more choices matter: enrollments
+  have the default attribute option combo, as on any instance upgraded to 2.43, and an event's
+  project is drawn per event, not per enrollment or facility.
 
 ## Publish
 
@@ -265,7 +279,8 @@ on the same tag; a fix needs a new tag.
 synthetic-databases/
 ├── pyproject.toml, uv.lock    dbgen pinned by commit until it is tagged, and the pipeline's code
 ├── lock.toml                  the base, and the DHIS2 image of each version by digest
-├── databases/mnch/            the spec, metadata, packages.lock.toml, and publish.toml: the areas
+├── databases/mnch/            the spec, metadata, categories.py, packages.lock.toml, and
+│                              publish.toml: the areas
 ├── upgrades/<version>/        check.sql, pre.sql, post.sql of the upgrade to the version
 ├── src/pipeline/              build, upgrade, check, fetch, publish, dev
 └── .github/workflows/         ci.yml, release.yml, dev.yml, each described in its header
